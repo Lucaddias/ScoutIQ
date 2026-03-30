@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+coverage/
+.DS_Store
+
+# Env / secrets
+.env
+.env.*
+
+# Local Cursor config (no need to share)
+.cursor/
+
+# Logs
+*.log
+
