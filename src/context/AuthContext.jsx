@@ -136,6 +136,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Guest Login (Bypass Supabase)
+  const loginAsGuest = () => {
+    const guestSession = {
+      id: 'guest-' + Date.now(),
+      name: 'Visitante (Demo)',
+      email: 'demo@scoutiq.com',
+      role: 'admin', // admin role so they can see all features
+    };
+    setUser(guestSession);
+    syncToUserList(guestSession);
+    return { success: true, user: guestSession };
+  };
+
   // Upgrade own role (e.g., user → scout)
   const upgradeRole = async (newRole) => {
     if (!user) return;
@@ -174,6 +187,7 @@ export function AuthProvider({ children }) {
       logout,
       upgradeRole,
       setUserRole,
+      loginAsGuest,
     }}>
       {children}
     </AuthContext.Provider>

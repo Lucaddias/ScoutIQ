@@ -38,7 +38,8 @@ function LoadingScreen() {
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [page, setPage] = useState(user ? 'dashboard' : 'prelogin');
+  const [page, setPage] = useState(user ? 'inicio' : 'prelogin');
+  const [pacoteSelecionado, setPacoteSelecionado] = useState(null);
 
   // Show loading while Supabase restores the session
   if (loading) return <LoadingScreen />;
@@ -47,7 +48,7 @@ function AppContent() {
 
   // If user just logged in and page is still prelogin/login, go to dashboard
   if (user && (page === 'prelogin' || page === 'login')) {
-    return <Dashboard page="dashboard" onNavigate={navigate} />;
+    return <Dashboard page="inicio" onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
   }
 
   if (page === 'prelogin') return <PreLogin onNavigate={navigate} />;
@@ -55,7 +56,7 @@ function AppContent() {
 
   // Authenticated pages share the sidebar via Dashboard layout
   if (!user) return <Login onNavigate={navigate} />;
-  return <Dashboard page={page} onNavigate={navigate} />;
+  return <Dashboard page={page} onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
 }
 
 export default function App() {

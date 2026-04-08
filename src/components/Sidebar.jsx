@@ -6,12 +6,13 @@ const ROLE_LABELS = { admin: 'Admin', scout: 'Olheiro', user: 'Usuário' };
 const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
 
 const NAV_ITEMS = [
-  { id: 'dashboard',    icon: 'fa-house',             label: 'Início',        roles: ['user', 'scout', 'admin'] },
-  { id: 'atletas',      icon: 'fa-user-group',        label: 'Atletas',       roles: ['user', 'scout', 'admin'] },
-  { id: 'estatisticas', icon: 'fa-chart-simple',      label: 'Estatísticas',  roles: ['user', 'scout', 'admin'] },
-  { id: 'relatorios',   icon: 'fa-file-lines',        label: 'Relatórios',    roles: ['scout', 'admin'] },
-  { id: 'contratos',    icon: 'fa-file-signature',    label: 'Contratos',     roles: ['scout', 'admin'] },
-  { id: 'admin',        icon: 'fa-shield-halved',     label: 'Gerenciar',     roles: ['admin'] },
+  { id: 'inicio',         icon: 'fa-house',             label: 'Início',             roles: ['user', 'scout', 'admin'] },
+  { id: 'apoio_decisao',  icon: 'fa-brain',             label: 'Apoio à Decisão',    roles: ['user', 'scout', 'admin'] },
+  { id: 'atletas',        icon: 'fa-user-group',        label: 'Atletas',            roles: ['user', 'scout', 'admin'] },
+  { id: 'estatisticas',   icon: 'fa-chart-simple',      label: 'Estatísticas',       roles: ['user', 'scout', 'admin'] },
+  { id: 'relatorios',     icon: 'fa-file-lines',        label: 'Relatórios',         roles: ['user', 'scout', 'admin'] },
+  { id: 'contratos',      icon: 'fa-file-signature',    label: 'Contratos',          roles: ['scout', 'admin'] },
+  { id: 'admin',          icon: 'fa-shield-halved',     label: 'Gerenciar',          roles: ['admin'] },
 ];
 
 export default function Sidebar({ page, onNavigate }) {

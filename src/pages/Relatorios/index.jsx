@@ -1,147 +1,86 @@
-import React, { useState, useMemo } from 'react';
-import playersData from '../../data/players_updated.json';
-import { enrichPlayers } from '../../utils/playerScore.js';
+import React from 'react';
+import PlayerCard from '../../components/PlayerCard.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Relatorios.css';
 
-const allPlayers = enrichPlayers(playersData.athletes);
-
-// Simulated teams and match data
-const TEAMS_BR = [
-  'Flamengo', 'Palmeiras', 'Grêmio', 'São Paulo', 'Corinthians',
-  'Atlético-MG', 'Internacional', 'Fluminense', 'Botafogo', 'Santos',
-  'Bahia', 'Fortaleza', 'Athletico-PR', 'Cruzeiro', 'Vasco',
-  'Red Bull Bragantino', 'Cuiabá', 'Goiás', 'América-MG', 'Coritiba',
-];
-
-function generateMatches(players) {
-  const matches = [];
-  const usedTeams = new Set();
-
-  for (let i = 0; i < 6; i++) {
-    let homeTeam, awayTeam;
-    do {
-      homeTeam = TEAMS_BR[Math.floor(Math.random() * TEAMS_BR.length)];
-      awayTeam = TEAMS_BR[Math.floor(Math.random() * TEAMS_BR.length)];
-    } while (homeTeam === awayTeam || usedTeams.has(`${homeTeam}-${awayTeam}`));
-    usedTeams.add(`${homeTeam}-${awayTeam}`);
-
-    const matchPlayers = players
-      .filter(p => p.team === homeTeam || p.team === awayTeam)
-      .slice(0, 10);
-
-    // If not enough players from those teams, grab random ones
-    const remaining = matchPlayers.length < 4
-      ? [...matchPlayers, ...players.sort(() => Math.random() - 0.5).slice(0, 4 - matchPlayers.length)]
-      : matchPlayers;
-
-    const mvp = remaining.sort((a, b) => b.score - a.score)[0];
-    const homeGoals = Math.floor(Math.random() * 4);
-    const awayGoals = Math.floor(Math.random() * 4);
-
-    const date = new Date();
-    date.setDate(date.getDate() - i * 3 - Math.floor(Math.random() * 3));
-
-    matches.push({
-      id: i,
-      homeTeam,
-      awayTeam,
-      homeGoals,
-      awayGoals,
-      date: date.toLocaleDateString('pt-BR'),
-      mvp,
-      highlights: remaining.slice(0, 3).map(p => ({
-        player: p,
-        rating: (7 + Math.random() * 3).toFixed(1),
-        goals: Math.floor(Math.random() * 3),
-        assists: Math.floor(Math.random() * 3),
-      })),
-    });
+export default function Relatorios({ pacoteSelecionado }) {
+  if (!pacoteSelecionado || pacoteSelecionado.length === 0) {
+    return (
+      <div className="relatorios-page">
+        <div className="relatorios-header">
+          <div>
+            <h1><i className="fa-solid fa-file-lines"></i> Relatório Oficial</h1>
+          </div>
+        </div>
+        <div className="empty-state" style={{marginTop: '40px', background: 'var(--card-bg)', padding: '48px', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center'}}>
+          <i className="fa-solid fa-file-circle-xmark" style={{fontSize: '48px', color: '#475569', marginBottom: '16px'}}></i>
+          <h4 style={{fontSize: '18px', color: '#94a3b8'}}>Nenhum cenário selecionado no painel de Apoio à Decisão.</h4>
+          <p style={{color: '#64748b', marginTop: '8px'}}>Volte ao simulador, escolha o cenário ideal para o clube e clique em "Gerar Relatório Oficial".</p>
+        </div>
+      </div>
+    );
   }
-  return matches;
-}
 
-export default function Relatorios() {
-  const [matches, setMatches] = useState(() => generateMatches(allPlayers));
-  const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState(null);
-
-  const handleGenerate = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setMatches(generateMatches(allPlayers));
-      setLoading(false);
-      setExpanded(null);
-    }, 800);
-  };
+  const investimentoTotal = pacoteSelecionado.reduce((a, p) => a + p.marketValue, 0);
+  const folhaCalculada    = pacoteSelecionado.reduce((a, p) => a + p.monthlySalary, 0);
 
   return (
     <div className="relatorios-page">
-      <div className="relatorios-header">
+      <div className="relatorios-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1><i className="fa-solid fa-file-lines"></i> Relatórios de Partidas</h1>
-          <p>Análise de desempenho das últimas partidas com destaques por jogador</p>
+          <h1><i className="fa-solid fa-file-signature"></i> Ofício de Contratação</h1>
+          <p>Pacote selecionado via inteligência algorítmica do ScoutIQ.</p>
         </div>
-        <button className="btn-gerar-relatorio" onClick={handleGenerate} disabled={loading}>
-          {loading
-            ? <><div className="spinner"></div> Gerando...</>
-            : <><i className="fa-solid fa-rotate"></i> Gerar Novos Relatórios</>
-          }
+        <button 
+          onClick={() => window.print()} 
+          style={{ padding: '10px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          <i className="fa-solid fa-file-pdf"></i> Salvar Relatório (PDF)
         </button>
       </div>
 
-      <div className="matches-list">
-        {matches.map(match => (
-          <div className={`match-card ${expanded === match.id ? 'expanded' : ''}`} key={match.id}>
-            <div className="match-header" onClick={() => setExpanded(prev => prev === match.id ? null : match.id)}>
-              <div className="match-date">
-                <i className="fa-solid fa-calendar"></i> {match.date}
-              </div>
-              <div className="match-score">
-                <span className="match-team">{match.homeTeam}</span>
-                <span className="match-result">{match.homeGoals} × {match.awayGoals}</span>
-                <span className="match-team">{match.awayTeam}</span>
-              </div>
-              <div className="match-mvp">
-                <span className="mvp-label">MVP</span>
-                <span className="mvp-name">{match.mvp?.name || '—'}</span>
-                <span className="mvp-score">Score {match.mvp?.score || '—'}</span>
-              </div>
-              <i className={`fa-solid ${expanded === match.id ? 'fa-chevron-up' : 'fa-chevron-down'} match-toggle`}></i>
-            </div>
-
-            {expanded === match.id && (
-              <div className="match-details">
-                <h4>Destaques da Partida</h4>
-                <div className="highlights-grid">
-                  {match.highlights.map((h, i) => (
-                    <div className="highlight-card" key={i}>
-                      <div className="highlight-rank">#{i + 1}</div>
-                      <div className="highlight-player">
-                        <img
-                          src={h.player.profileImageURL}
-                          alt={h.player.name}
-                          className="highlight-avatar"
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
-                        <div>
-                          <div className="highlight-name">{h.player.name}</div>
-                          <div className="highlight-team">{h.player.team}</div>
-                        </div>
-                      </div>
-                      <div className="highlight-stats">
-                        <div><span>Rating</span><strong style={{color: parseFloat(h.rating) >= 8.5 ? '#14b8a6' : '#f59e0b'}}>{h.rating}</strong></div>
-                        <div><span>Gols</span><strong>{h.goals}</strong></div>
-                        <div><span>Assists</span><strong>{h.assists}</strong></div>
-                        <div><span>Valor</span><strong>{formatBRL(h.player.marketValue)}</strong></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+      <div className="oficio-container card print-area" style={{ padding: '32px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+          <div>
+            <h2 style={{ color: '#f8fafc', fontSize: '20px', letterSpacing: '0.05em' }}>DOCUMENTO INTERNO OFICIAL</h2>
+            <div style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>Ref: SCIQ-{(Math.random() * 10000).toFixed(0)}/25</div>
           </div>
-        ))}
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '8px 16px', borderRadius: '16px', fontWeight: 'bold', fontSize: '14px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            VALIDADO PELO ALGORITMO
+          </div>
+        </div>
+
+        <p style={{ color: '#cbd5e1', fontSize: '15px', lineHeight: '1.6', marginBottom: '16px' }}>
+          <strong>À Presidência e Diretoria de Futebol,</strong>
+        </p>
+        
+        <p style={{ color: '#94a3b8', fontSize: '15px', lineHeight: '1.6', marginBottom: '24px' }}>
+          Com base na análise algorítmica do <strong>ScoutIQ</strong>, e respeitando rigorosamente o teto orçamentário deliberado, sugerimos a aprovação do pacote técnico discriminado abaixo. A seleção cobre as carências solicitadas pelo departamento de futebol, otimizando o <strong>Retorno Sobre Investimento (ROI)</strong> e maximizando a probabilidade de sucesso esportivo na atual janela.
+        </p>
+
+        <div style={{ padding: '20px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '8px', marginBottom: '32px', borderLeft: '4px solid #3b82f6' }}>
+          <strong style={{ display: 'block', color: '#f8fafc', marginBottom: '12px' }}>Resumo Financeiro da Operação:</strong>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#cbd5e1', lineHeight: '1.8' }}>
+            <li>Custo total de direitos econômicos: <strong style={{color: '#f8fafc'}}>{formatBRL(investimentoTotal)}</strong></li>
+            <li>Adição à folha salarial mensal: <strong style={{color: '#f8fafc'}}>{formatBRL(folhaCalculada)}</strong></li>
+            <li>Status de compliance financeiro: <strong style={{color: '#10b981'}}>✔ APROVADO</strong></li>
+          </ul>
+        </div>
+
+        <h3 style={{ marginBottom: '20px', color: '#f8fafc', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <i className="fa-solid fa-users" style={{color: '#3b82f6'}}></i> Atletas Selecionados / Sugeridos:
+        </h3>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          {pacoteSelecionado.map(player => (
+            <PlayerCard key={player.id} player={player} />
+          ))}
+        </div>
+
+        <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px dashed var(--border-color)', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+          Documento gerado automaticamente pelo algoritmo corporativo ScoutIQ.<br />
+          Para aprovação final, acione o Departamento Jurídico.
+        </div>
       </div>
     </div>
   );

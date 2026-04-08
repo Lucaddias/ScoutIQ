@@ -1,0 +1,49 @@
+.apoio-decisao-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.vagas-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 16px 0 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.vaga-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.vaga-row span {
+  font-size: 13px;
+  color: #cbd5e1;
+  width: 45px;
+  flex-shrink: 0;
+}
+
+.oficial-btn {
+  margin-top: 24px;
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.oficial-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
