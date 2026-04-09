@@ -1,52 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import PreLogin from './pages/PreLogin/index.jsx';
 import Login from './pages/Login/index.jsx';
 import Dashboard from './pages/Dashboard/index.jsx';
 
+// Importações do Redux
+import { useDispatch } from 'react-redux';
+import { setAtletas } from './store/atletasSlice';
+
+// A MÁGICA AQUI: Importando o arquivo JSON diretamente!
+import mockJogadores from './data/players_updated.json';
 function LoadingScreen() {
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      background: 'linear-gradient(135deg, #0a0a1a 0%, #0f172a 50%, #0a0a1a 100%)',
-      color: '#94a3b8',
-      gap: '16px',
-    }}>
-      <div style={{
-        width: '56px',
-        height: '56px',
-        borderRadius: '16px',
-        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '24px',
-        fontWeight: 800,
-        color: '#fff',
-        animation: 'pulse 1.5s ease-in-out infinite',
-      }}>
-        Q
-      </div>
-      <p style={{ fontSize: '14px', letterSpacing: '0.05em' }}>Carregando ScoutIQ...</p>
-    </div>
-  );
+  /* ... (Mantenha o mesmo código de LoadingScreen que você já tem) ... */
 }
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [page, setPage] = useState(user ? 'inicio' : 'prelogin');
   const [pacoteSelecionado, setPacoteSelecionado] = useState(null);
+  
+  const dispatch = useDispatch();
 
-  // Show loading while Supabase restores the session
+  // O Motoboy agora busca os dados na gaveta local (JSON)
+  useEffect(() => {
+    // Se não tem usuário logado, não faz nada
+    if (!user) return; 
+
+    // Pega os dados do arquivo JSON e joga no Redux
+    // Tentamos pegar a propriedade athletes primeiro. Se não existir, pegamos o arquivo inteiro.
+// E por precaução, garantimos que sempre seja um array com o || []
+dispatch(setAtletas(mockJogadores.athletes || mockJogadores || []));
+    console.log("Cofre do Redux abastecido com dados MOCKADOS com sucesso!", mockJogadores.length);
+
+  }, [user, dispatch]);
+
   if (loading) return <LoadingScreen />;
 
   const navigate = (target) => setPage(target);
 
-  // If user just logged in and page is still prelogin/login, go to dashboard
   if (user && (page === 'prelogin' || page === 'login')) {
     return <Dashboard page="inicio" onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
   }
@@ -54,7 +45,6 @@ function AppContent() {
   if (page === 'prelogin') return <PreLogin onNavigate={navigate} />;
   if (page === 'login')    return <Login    onNavigate={navigate} />;
 
-  // Authenticated pages share the sidebar via Dashboard layout
   if (!user) return <Login onNavigate={navigate} />;
   return <Dashboard page={page} onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
 }
