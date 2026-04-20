@@ -1,0 +1,127 @@
+/* ===== Perfil Page ===== */
+.perfil-page {
+  padding: 32px;
+  max-width: 900px;
+}
+
+.perfil-header { margin-bottom: 28px; }
+.perfil-header h1 { font-size: 24px; font-weight: 800; color: white; margin-bottom: 4px; }
+.perfil-header p  { color: #6b7a99; font-size: 14px; }
+
+.perfil-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+
+/* Profile Card */
+.perfil-card {
+  background: rgba(14,18,48,0.8);
+  border: 1px solid #1a2050;
+  border-radius: 16px;
+  padding: 36px 24px;
+  text-align: center;
+}
+.perfil-avatar-large {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 32px; color: white;
+  margin: 0 auto 18px;
+  box-shadow: 0 0 30px rgba(59,130,246,0.3);
+}
+.perfil-card h2 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 4px; }
+.perfil-email { color: #6b7a99; font-size: 13px; margin-bottom: 18px; }
+.perfil-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Permissions Card */
+.perfil-perms-card {
+  background: rgba(14,18,48,0.8);
+  border: 1px solid #1a2050;
+  border-radius: 16px;
+  padding: 28px;
+}
+.perfil-perms-card h3 {
+  font-size: 16px; font-weight: 700; color: white;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.perfil-perms-card h3 i { color: #f59e0b; }
+
+.perms-list { list-style: none; }
+.perms-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  color: rgba(255,255,255,0.75);
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.perms-list li:last-child { border-bottom: none; }
+.perms-list li i { color: #14b8a6; font-size: 14px; }
+
+/* Upgrade Section */
+.upgrade-section { margin-top: 8px; }
+.upgrade-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1a2050, transparent);
+  margin: 20px 0;
+}
+.upgrade-promo {
+  display: flex; gap: 16px; align-items: flex-start;
+  margin-bottom: 20px;
+}
+.upgrade-icon {
+  width: 48px; height: 48px;
+  background: rgba(245,158,11,0.1);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.upgrade-icon i { color: #fbbf24; font-size: 20px; }
+.upgrade-promo h4 { font-size: 14px; font-weight: 700; color: white; margin-bottom: 4px; }
+.upgrade-promo p  { font-size: 13px; color: #6b7a99; line-height: 1.5; }
+
+.btn-upgrade {
+  width: 100%;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(245,158,11,0.3);
+}
+.btn-upgrade:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(245,158,11,0.45); }
+
+.role-active-msg {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.4;
+}
+.role-active-msg i { font-size: 18px; color: #14b8a6; flex-shrink: 0; }
+.role-active-msg.admin i { color: #f87171; }
+.role-active-msg { background: rgba(20,184,166,0.06); border: 1px solid rgba(20,184,166,0.15); }
+.role-active-msg.admin { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); }
+
+@media (max-width: 768px) {
+  .perfil-grid { grid-template-columns: 1fr; }
+}

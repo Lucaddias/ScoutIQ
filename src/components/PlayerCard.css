@@ -1,0 +1,97 @@
+/* ===== PlayerCard ===== */
+.player-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #1a2050;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.2s;
+  cursor: default;
+}
+.player-card.clickable { cursor: pointer; }
+.player-card:hover {
+  background: rgba(59,130,246,0.04);
+  border-color: rgba(59,130,246,0.2);
+  transform: translateX(2px);
+}
+
+/* Avatar */
+.pc-avatar {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: #1a2050;
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+  display: flex; align-items: center; justify-content: center;
+}
+.pc-avatar img {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.pc-avatar-fallback {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+}
+.pc-pos-badge {
+  position: absolute;
+  bottom: -4px; right: -4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  border: 1.5px solid #080b1a;
+}
+
+/* Info */
+.pc-info { flex: 1; min-width: 0; }
+.pc-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.pc-meta { font-size: 11px; color: #6b7a99; }
+.pc-team { opacity: 0.8; }
+.pc-age  { opacity: 0.6; }
+
+/* Financials */
+.pc-financials {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+.pc-val { font-size: 12px; color: white; font-weight: 600; }
+.pc-val span {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: #6b7a99;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Score */
+.pc-score-wrap { text-align: center; flex-shrink: 0; }
+.pc-score {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--s-color, #3b82f6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--s-color, #3b82f6);
+  background: rgba(59,130,246,0.06);
+  margin-bottom: 2px;
+}
+.pc-score-label { font-size: 9px; color: #6b7a99; text-transform: uppercase; letter-spacing: 0.06em; }

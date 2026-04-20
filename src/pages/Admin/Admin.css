@@ -1,0 +1,150 @@
+/* ===== Admin Page ===== */
+.admin-page { padding: 32px; }
+
+.admin-header { margin-bottom: 28px; }
+.admin-header h1 {
+  font-size: 24px; font-weight: 800; color: white; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+.admin-header h1 i { color: #f87171; }
+.admin-header p { color: #6b7a99; font-size: 14px; }
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.admin-card {
+  background: rgba(14,18,48,0.8);
+  border: 1px solid #1a2050;
+  border-radius: 14px;
+  padding: 24px;
+}
+.admin-card h3 {
+  font-size: 16px; font-weight: 700; color: white;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.admin-card h3 i { color: #3b82f6; }
+
+/* Users List */
+.admin-users-list { display: flex; flex-direction: column; gap: 8px; }
+
+.admin-user-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.04);
+  transition: border-color 0.15s;
+}
+.admin-user-row:hover { border-color: rgba(59,130,246,0.2); }
+
+.admin-user-avatar {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: white;
+  flex-shrink: 0;
+}
+.admin-user-info { flex: 1; overflow: hidden; }
+.admin-user-name {
+  font-size: 13px; font-weight: 600; color: white;
+  display: flex; align-items: center; gap: 6px;
+}
+.admin-user-email { font-size: 11px; color: #6b7a99; }
+
+.you-badge {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  background: rgba(59,130,246,0.15); color: #60a5fa;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.05em;
+}
+
+.admin-role-select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s;
+}
+.admin-role-select:focus { box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+.admin-role-select option { background: #0e1230; color: white; }
+
+.admin-empty { color: #6b7a99; font-size: 13px; padding: 20px; text-align: center; }
+
+/* Add Player Form */
+.add-player-form { display: flex; flex-direction: column; gap: 14px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.add-player-form .form-group label {
+  display: block;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.5);
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.add-player-form .form-group input,
+.add-player-form .form-group select {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.add-player-form .form-group input::placeholder { color: rgba(255,255,255,0.2); }
+.add-player-form .form-group input:focus,
+.add-player-form .form-group select:focus {
+  border-color: rgba(59,130,246,0.5);
+}
+.add-player-form .form-group select option { background: #0e1230; }
+
+.btn-add-player {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: white; border: none; border-radius: 10px;
+  padding: 12px; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s; box-shadow: 0 4px 16px rgba(59,130,246,0.25);
+  margin-top: 4px;
+}
+.btn-add-player:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(59,130,246,0.4); }
+
+/* Custom Players */
+.custom-players-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #1a2050;
+}
+.custom-players-section h4 {
+  font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.6);
+  margin-bottom: 12px;
+}
+.custom-player-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.custom-player-row:last-child { border-bottom: none; }
+.custom-player-name { flex: 1; color: white; font-weight: 600; }
+.custom-player-team { color: #6b7a99; }
+.custom-player-value { color: #14b8a6; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .admin-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .admin-page { padding: 16px; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr !important; }
+}
