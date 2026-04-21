@@ -12,6 +12,12 @@ const Login = ({ onNavigate }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
 
+  /*
+   * handleSubmit — gerencia o fluxo de login e cadastro no mesmo formulário.
+   * Valida os campos localmente antes de chamar o Supabase para economizar requisições.
+   * Chama signup ou login do AuthContext dependendo do modo ativo (isSignUp).
+   * Em caso de sucesso, navega para o dashboard; em caso de erro, exibe a mensagem traduzida.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -57,6 +63,10 @@ const Login = ({ onNavigate }) => {
     setLoading(false);
   };
 
+  /*
+   * translateError — converte as mensagens de erro em inglês do Supabase
+   * para mensagens amigáveis em português para o usuário final.
+   */
   const translateError = (msg) => {
     if (!msg) return 'Erro desconhecido.';
     if (msg.includes('Invalid login credentials')) return 'Email ou senha incorretos.';

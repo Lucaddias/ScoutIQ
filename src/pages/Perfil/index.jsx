@@ -27,9 +27,14 @@ const ROLE_PERKS = {
 };
 
 export default function Perfil() {
+  /*
+   * Lê o usuário logado e a função upgradeRole do AuthContext.
+   * role define quais permissões e quais opções de upgrade serão exibidas.
+   */
   const { user, upgradeRole } = useAuth();
   const role = user?.role || 'user';
 
+  /* handleUpgrade — promove o usuário de 'user' para 'scout' via Supabase (AuthContext). */
   const handleUpgrade = async () => {
     await upgradeRole('scout');
   };

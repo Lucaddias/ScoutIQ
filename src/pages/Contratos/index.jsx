@@ -6,9 +6,17 @@ import './Contratos.css';
 
 const allPlayers = enrichPlayers(playersData.athletes);
 
+/*
+ * generateProposal — gera automaticamente uma proposta de contrato para o jogador.
+ * Os valores são calculados com variação aleatória sobre o valor de mercado e salário:
+ *   - Valor da proposta: 85% a 95% do valor de mercado (simula margem de negociação)
+ *   - Salário proposto:  90% a 110% do salário atual
+ *   - Duração: sorteada entre 2, 3 ou 4 anos
+ *   - Bônus de performance: fixado em 5% do valor de mercado
+ */
 function generateProposal(player) {
-  const factor = 0.85 + Math.random() * 0.10; // 85–95% of market value
-  const salaryFactor = 0.90 + Math.random() * 0.20; // 90–110%
+  const factor = 0.85 + Math.random() * 0.10;
+  const salaryFactor = 0.90 + Math.random() * 0.20;
   const years = [2, 3, 4][Math.floor(Math.random() * 3)];
   return {
     proposedValue: Math.round(player.marketValue * factor),
@@ -24,6 +32,7 @@ export default function Contratos() {
   const [proposal, setProposal] = useState(null);
   const [toast, setToast] = useState(null);
 
+  /* useMemo: filtra os jogadores pelo nome digitado e limita a 20 resultados para performance. */
   const filtered = useMemo(() => {
     if (!search) return allPlayers.slice(0, 20);
     return allPlayers.filter(p =>
@@ -31,16 +40,19 @@ export default function Contratos() {
     ).slice(0, 20);
   }, [search]);
 
+  /* handleSelect — seleciona um jogador e gera imediatamente uma proposta para ele. */
   const handleSelect = (player) => {
     setSelectedPlayer(player);
     setProposal(generateProposal(player));
   };
 
+  /* handleSendProposal — simula o envio da proposta exibindo um toast de confirmação. */
   const handleSendProposal = () => {
     setToast(`Proposta enviada para ${selectedPlayer.name}!`);
     setTimeout(() => setToast(null), 3000);
   };
 
+  /* handleNewProposal — regenera os valores da proposta com nova aleatoriedade. */
   const handleNewProposal = () => {
     setProposal(generateProposal(selectedPlayer));
   };

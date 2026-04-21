@@ -23,6 +23,11 @@ export default function AdminPage() {
     marketValue: '', monthlySalary: '', age: '',
   });
 
+  /*
+   * handleRoleChange — altera o papel de um usuário chamando setUserRole do AuthContext.
+   * Exibe um toast de confirmação por 3 segundos após a mudança.
+   * setUserRole persiste a alteração localmente e, se for o próprio admin, também no Supabase.
+   */
   const handleRoleChange = (userId, newRole) => {
     setUserRole(userId, newRole);
     const u = allUsers.find(u => u.id === userId);
@@ -30,6 +35,12 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  /*
+   * handleAddPlayer — cria um novo jogador local a partir do formulário.
+   * O salário mensal usa fallback de 2% do valor de mercado se não preenchido.
+   * O score é gerado aleatoriamente entre 60–90 para simular dados reais.
+   * O jogador é adicionado apenas ao estado local (customPlayers), não ao Redux nem ao JSON.
+   */
   const handleAddPlayer = (e) => {
     e.preventDefault();
     if (!form.name || !form.team || !form.marketValue) {

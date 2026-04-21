@@ -44,6 +44,12 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
   const [noResult,  setNoResult]  = useState(false);
   const [modalPlayer, setModalPlayer] = useState(null);
 
+  /*
+   * handleVagasChange — sincroniza o número de vagas com a listaVagas.
+   * Quando aumenta, adiciona novas vagas com posição e prioridade padrão.
+   * Quando diminui, remove as últimas vagas da lista (splice).
+   * clamp garante que o valor fique entre 1 e 5.
+   */
   const handleVagasChange = (val) => {
     const newVal = clamp(val, 1, 5);
     setVagas(newVal);
@@ -60,6 +66,7 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     });
   };
 
+  /* updateVaga — atualiza um campo específico (posição ou prioridade) de uma vaga pelo índice. */
   const updateVaga = (index, field, val) => {
     setListaVagas(prev => {
       const copy = [...prev];
@@ -68,6 +75,12 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     });
   };
 
+  /*
+   * handleGerar — valida os parâmetros e aciona o algoritmo de cenários.
+   * Mapeia as vagas do formato UI (ATA, MEI...) para o formato do banco (Forward, Midfielder...).
+   * O setTimeout de 600ms simula latência para exibir o spinner de loading.
+   * Chama gerarCenarios (algorithm.js) que retorna os 3 pacotes distintos.
+   */
   const handleGerar = () => {
     const errs = {};
     if (!orcamento || orcamento <= 0) errs.orcamento = 'Inválido (> 0).';
@@ -78,7 +91,6 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     setLoading(true);
     setNoResult(false);
 
-    // Mapear as vagas para o backend db
     const mappedVagas = listaVagas.map(v => ({
       dbPos: POSITIONS.find(p => p.val === v.pos).db,
       prio: Number(v.prio)
@@ -93,6 +105,10 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     }, 600);
   };
 
+  /*
+   * handleGerarRelatorioOficial — passa o pacote do cenário ativo para o estado global
+   * (via setPacoteSelecionado em App.jsx) e navega para a página de Relatórios.
+   */
   const handleGerarRelatorioOficial = () => {
     const pacoteAtivo = cenarios[`cenario${abaAtiva}`];
     setPacoteSelecionado(pacoteAtivo);

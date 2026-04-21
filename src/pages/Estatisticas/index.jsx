@@ -9,6 +9,12 @@ const POS_COLORS = { Forward: '#f59e0b', Midfielder: '#3b82f6', Defender: '#14b8
 export default function Estatisticas({ players, onPlayerClick }) {
   const [expandedPos, setExpandedPos] = useState(null); // position string or null
 
+  /*
+   * useMemo: cálculo de todas as estatísticas derivadas da lista de jogadores.
+   * Agrupa por posição (byPos) com médias de valor, salário e score.
+   * Gera os 3 rankings (goleadores, assistentes, maior score) ordenando e fatiando os top 5.
+   * O useMemo evita reprocessar esses cálculos a cada render — só roda quando `players` muda.
+   */
   const stats = useMemo(() => {
     const total = players.length;
     const byPos = {};
@@ -42,6 +48,7 @@ export default function Estatisticas({ players, onPlayerClick }) {
     return { total, byPos, topScorers, topAssists, topScore, totalMarketValue, avgMarketValue };
   }, [players]);
 
+  /* togglePos — abre ou fecha a lista expandida de jogadores por posição (acordeão). */
   const togglePos = (pos) => {
     setExpandedPos(prev => prev === pos ? null : pos);
   };

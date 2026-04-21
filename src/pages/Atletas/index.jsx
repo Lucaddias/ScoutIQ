@@ -3,7 +3,12 @@ import PlayerCard from '../../components/PlayerCard.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
 import './Atletas.css';
 
-// 1. Importações do Redux
+/*
+ * HOOKS DO REDUX
+ * useSelector → lê dados do store global (equivale a "ouvir" uma fatia do estado)
+ * useDispatch → retorna a função dispatch para enviar actions ao store
+ * As actions importadas do slice descrevem QUAL operação realizar (criar, excluir, atualizar)
+ */
 import { useSelector, useDispatch } from 'react-redux';
 import { adicionarAtleta, excluirAtleta, atualizarAtleta } from '../../store/atletasSlice';
 
@@ -32,11 +37,16 @@ const initialFilterState = {
 };
 
 export default function Atletas({ onPlayerClick, initialPosition }) {
-  // 2. LENDO DO REDUX: Substitui o arquivo estático pela gaveta do Redux
+  /*
+   * LEITURA DO STORE (useSelector)
+   * useSelector acessa a fatia "atletas" do store e retorna apenas a lista.
+   * O componente re-renderiza automaticamente sempre que essa lista mudar no store.
+   * useDispatch fornece a função para disparar actions (criar, editar, excluir).
+   */
   const jogadoresDoBanco = useSelector((state) => state.atletas.lista);
   const dispatch = useDispatch();
 
-  // Enriquecendo os dados do Redux com a sua função de score
+  // Os dados crus do Redux são enriquecidos com o score calculado antes de serem usados
   const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
   // [REQ: useReducer] Substitui os useState individuais de filtro
@@ -77,13 +87,16 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // [REQ: CRUD-Update] Abre modal de edição pré-preenchido
+  /* ── UPDATE ──────────────────────────────────────────────────────────────
+   * handleAbrirEdicao preenche o estado local com os dados do jogador clicado.
+   * handleSalvarEdicao despacha atualizarAtleta → o reducer localiza o jogador
+   * pelo ID no store e substitui todo o objeto pelo novo valor.
+   */
   const handleAbrirEdicao = (jogador) => {
     setJogadorEditando({ ...jogador });
     setModalEdicaoAberto(true);
   };
 
-  // [REQ: CRUD-Update] Salva edição via Redux dispatch
   const handleSalvarEdicao = (e) => {
     e.preventDefault();
     dispatch(atualizarAtleta(jogadorEditando));
@@ -91,25 +104,32 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
     setJogadorEditando(null);
   };
 
-  // 3. FUNÇÃO: Salvar novo jogador (CREATE)
+  /* ── CREATE ──────────────────────────────────────────────────────────────
+   * Monta o objeto do novo jogador com um ID único gerado localmente (mock).
+   * dispatch(adicionarAtleta(...)) envia a action ao store, que faz push na lista.
+   * O componente re-renderiza automaticamente pois é assinante do store via useSelector.
+   */
   const handleSalvar = (e) => {
     e.preventDefault();
     const novoJogador = {
-      id: `mock_${Math.random().toString(36).substr(2, 9)}`, // [REQ: template-literal]
+      id: `mock_${Math.random().toString(36).substr(2, 9)}`,
       name: formulario.name,
       position: formulario.position,
       team: formulario.team,
       marketValue: Number(formulario.marketValue),
       monthlySalary: Number(formulario.monthlySalary),
-      stats: {} // Estrutura vazia de stats para não quebrar o PlayerCard
+      stats: {}
     };
-    
+
     dispatch(adicionarAtleta(novoJogador));
     setModalAberto(false);
     setFormulario({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
   };
 
-  // 4. FUNÇÃO: Excluir jogador (DELETE)
+  /* ── DELETE ──────────────────────────────────────────────────────────────
+   * dispatch(excluirAtleta(id)) envia o ID como payload.
+   * O reducer filtra a lista removendo o jogador com aquele ID.
+   */
   const handleExcluir = (id, nome) => {
     if (window.confirm(`Deseja mesmo remover o atleta ${nome} da base de dados?`)) {
       dispatch(excluirAtleta(id));
