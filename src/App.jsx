@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import PreLogin from './pages/PreLogin/index.jsx';
 import Login from './pages/Login/index.jsx';
 import Dashboard from './pages/Dashboard/index.jsx';
 
-// Importações do Redux
-import { useDispatch } from 'react-redux';
-import { setAtletas, fetchAtletas } from './store/atletasSlice'; // [REQ: createAsyncThunk]
-
-// A MÁGICA AQUI: Importando o arquivo JSON diretamente!
-import mockJogadores from './data/players_updated.json';
 function LoadingScreen() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: '#94a3b8', fontSize: '18px', gap: '12px' }}>
@@ -23,20 +17,6 @@ function AppContent() {
   const { user, loading } = useAuth();
   const [page, setPage] = useState(user ? 'inicio' : 'prelogin');
   const [pacoteSelecionado, setPacoteSelecionado] = useState(null);
-  
-  const dispatch = useDispatch();
-
-  // [REQ: createAsyncThunk] Dispara thunk assíncrono; fallback para mock se fetch falhar
-  useEffect(() => {
-    if (!user) return;
-
-    dispatch(fetchAtletas())
-      .unwrap()
-      .catch(() => {
-        // Fallback: carrega dados mock locais se a API não estiver disponível
-        dispatch(setAtletas(mockJogadores.athletes || mockJogadores || []));
-      });
-  }, [user, dispatch]);
 
   if (loading) return <LoadingScreen />;
 

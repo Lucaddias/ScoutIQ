@@ -1,91 +1,77 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-/*
- * THUNK ASSÍNCRONO (createAsyncThunk)
- * Permite buscar dados de uma API ou arquivo externo de forma assíncrona.
- * Gera automaticamente 3 actions: pending (carregando), fulfilled (sucesso) e rejected (erro).
- * O retorno da função async vira o action.payload em extraReducers.
- */
+// 1. READ: Buscar do seu arquivo JSON
 export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () => {
+  // Simulando que o JSON é uma API na internet (com 1 seg de atraso)
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
   const response = await fetch('/players_updated.json');
   if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
   const data = await response.json();
+  
   return data.athletes || data || [];
 });
 
-/*
- * SLICE DE ATLETAS (createSlice)
- * Uma "fatia" do estado global. Reúne em um só lugar:
- *   - initialState: os dados iniciais dessa fatia
- *   - reducers: as funções síncronas que modificam o estado (CRUD)
- *   - extraReducers: os casos assíncronos gerados pelo createAsyncThunk
- * O Redux Toolkit usa Immer internamente, então podemos "mutar" o state diretamente.
- */
+// 2. CREATE: Simular criação com atraso
+export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJogador) => {
+  await new Promise(resolve => setTimeout(resolve, 800)); // "Pensando..."
+  
+  return {
+    ...novoJogador,
+    id: `mock_${Math.random().toString(36).substr(2, 9)}` // Cria ID falso
+  };
+});
+
+// 3. UPDATE: Simular edição com atraso
+export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  return jogador; // Só devolve o cara modificado pra gaveta atualizar
+});
+
+// 4. DELETE: Simular exclusão com atraso
+export const deletarAtletaMock = createAsyncThunk('atletas/deletarAtleta', async (id) => {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  return id; // Devolve o ID pra gaveta sumir com ele da tela
+});
+
 export const atletasSlice = createSlice({
   name: 'atletas',
   initialState: {
     lista: [],
-    loading: false, // controla o estado de carregamento para exibir spinners
-    error: null,    // armazena a mensagem de erro caso o fetch falhe
+    loading: false, // Variável de Ouro! Vamos usar pra mostrar o spinner
+    error: null,
   },
-
-  /*
-   * REDUCERS SÍNCRONOS — operações CRUD sobre a lista local
-   * Cada reducer recebe (state, action) onde action.payload é o dado enviado pelo dispatch.
-   * Esses reducers geram automaticamente as actions exportadas no final do arquivo.
-   */
-  reducers: {
-    // Carrega a lista completa de uma vez (usado como fallback com dados mock)
-    setAtletas: (state, action) => {
-      state.lista = action.payload;
-    },
-
-    // Adiciona um novo jogador ao final da lista
-    adicionarAtleta: (state, action) => {
-      state.lista.push(action.payload);
-    },
-
-    // Localiza o jogador pelo ID e substitui todo o objeto
-    atualizarAtleta: (state, action) => {
-      const index = state.lista.findIndex(atleta => atleta.id === action.payload.id);
-      if (index !== -1) {
-        state.lista[index] = action.payload;
-      }
-    },
-
-    // Remove o jogador cujo ID foi passado como payload
-    excluirAtleta: (state, action) => {
-      state.lista = state.lista.filter(atleta => atleta.id !== action.payload);
-    },
-  },
-
-  /*
-   * EXTRA REDUCERS — tratam os 3 estados gerados pelo createAsyncThunk:
-   *   pending   → fetch iniciou: ativa o loading
-   *   fulfilled → fetch concluiu: salva os dados na lista
-   *   rejected  → fetch falhou: registra a mensagem de erro
-   */
+  reducers: {}, // Vazio, pois tudo agora é assíncrono (Thunks)
+  
   extraReducers: (builder) => {
     builder
-      .addCase(fetchAtletas.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchAtletas.fulfilled, (state, action) => {
+      // --- FETCH ---
+      .addCase(fetchAtletas.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(fetchAtletas.fulfilled, (state, action) => { state.loading = false; state.lista = action.payload; })
+      .addCase(fetchAtletas.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+      
+      // --- CREATE ---
+      .addCase(criarAtleta.pending, (state) => { state.loading = true; })
+      .addCase(criarAtleta.fulfilled, (state, action) => {
         state.loading = false;
-        state.lista = action.payload;
+        state.lista.push(action.payload);
       })
-      .addCase(fetchAtletas.rejected, (state, action) => {
+
+      // --- UPDATE ---
+      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(atualizarAtletaMock.fulfilled, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        const index = state.lista.findIndex(a => a.id === action.payload.id);
+        if (index !== -1) { state.lista[index] = action.payload; }
+      })
+
+      // --- DELETE ---
+      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(deletarAtletaMock.fulfilled, (state, action) => {
+        state.loading = false;
+        state.lista = state.lista.filter(a => a.id !== action.payload);
       });
   },
 });
 
-/*
- * EXPORTAÇÕES
- * As actions (adicionarAtleta, atualizarAtleta, etc.) são usadas nos componentes com dispatch().
- * O reducer padrão é registrado no store em src/store/index.js.
- */
-export const { setAtletas, adicionarAtleta, atualizarAtleta, excluirAtleta } = atletasSlice.actions;
 export default atletasSlice.reducer;

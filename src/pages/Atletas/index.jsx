@@ -1,22 +1,19 @@
-import React, { useState, useMemo, useReducer } from 'react';
+import React, { useState, useMemo, useReducer, useEffect } from 'react';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
 import './Atletas.css';
 
 /*
- * HOOKS DO REDUX
- * useSelector → lê dados do store global (equivale a "ouvir" uma fatia do estado)
- * useDispatch → retorna a função dispatch para enviar actions ao store
- * As actions importadas do slice descrevem QUAL operação realizar (criar, excluir, atualizar)
+ * HOOKS DO REDUX E NOVOS THUNKS ASSÍNCRONOS
  */
 import { useSelector, useDispatch } from 'react-redux';
-import { adicionarAtleta, excluirAtleta, atualizarAtleta } from '../../store/atletasSlice';
+import { fetchAtletas, criarAtleta, atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
 
 const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
 const PAGE_SIZE = 12;
 
-// [REQ: useReducer] Reducer para gerenciar todos os filtros da listagem
+// Reducer para gerenciar todos os filtros da listagem
 const filterReducer = (state, action) => {
   switch (action.type) {
     case 'SET_SEARCH':   return { ...state, search: action.payload, page: 1 };
@@ -38,33 +35,36 @@ const initialFilterState = {
 
 export default function Atletas({ onPlayerClick, initialPosition }) {
   /*
-   * LEITURA DO STORE (useSelector)
-   * useSelector acessa a fatia "atletas" do store e retorna apenas a lista.
-   * O componente re-renderiza automaticamente sempre que essa lista mudar no store.
-   * useDispatch fornece a função para disparar actions (criar, editar, excluir).
+   * LEITURA DO STORE: Agora pegamos a lista E o estado de loading
    */
-  const jogadoresDoBanco = useSelector((state) => state.atletas.lista);
+  const { lista: jogadoresDoBanco, loading } = useSelector((state) => state.atletas);
   const dispatch = useDispatch();
+
+  // O GATILHO INICIAL: Busca os dados no JSON assim que a tela abre
+  useEffect(() => {
+    if (jogadoresDoBanco.length === 0) {
+      dispatch(fetchAtletas());
+    }
+  }, [dispatch, jogadoresDoBanco.length]);
 
   // Os dados crus do Redux são enriquecidos com o score calculado antes de serem usados
   const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
-  // [REQ: useReducer] Substitui os useState individuais de filtro
+  // Filtros
   const [filters, dispatchFilter] = useReducer(filterReducer, {
     ...initialFilterState,
     position: initialPosition || 'Todos',
   });
   const { search, position, team, sortBy, page } = filters;
 
-  // Estados do Modal de Criação (CRUD)
+  // Estados dos Modais
   const [modalAberto, setModalAberto] = useState(false);
   const [formulario, setFormulario] = useState({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
 
-  // [REQ: CRUD-Update] Estado do modal de edição
   const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
   const [jogadorEditando, setJogadorEditando] = useState(null);
 
-  // Lógica de Filtros (Mantida intacta)
+  // Lógica de Filtros
   const teams = useMemo(() => {
     const t = new Set(players.map(p => p.team).filter(Boolean));
     return ['Todos', ...Array.from(t).sort()];
@@ -87,11 +87,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  /* ── UPDATE ──────────────────────────────────────────────────────────────
-   * handleAbrirEdicao preenche o estado local com os dados do jogador clicado.
-   * handleSalvarEdicao despacha atualizarAtleta → o reducer localiza o jogador
-   * pelo ID no store e substitui todo o objeto pelo novo valor.
-   */
+  /* ── UPDATE ────────────────────────────────────────────────────────────── */
   const handleAbrirEdicao = (jogador) => {
     setJogadorEditando({ ...jogador });
     setModalEdicaoAberto(true);
@@ -99,20 +95,17 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
 
   const handleSalvarEdicao = (e) => {
     e.preventDefault();
-    dispatch(atualizarAtleta(jogadorEditando));
+    // Dispara o novo Thunk Assíncrono
+    dispatch(atualizarAtletaMock(jogadorEditando));
     setModalEdicaoAberto(false);
     setJogadorEditando(null);
   };
 
-  /* ── CREATE ──────────────────────────────────────────────────────────────
-   * Monta o objeto do novo jogador com um ID único gerado localmente (mock).
-   * dispatch(adicionarAtleta(...)) envia a action ao store, que faz push na lista.
-   * O componente re-renderiza automaticamente pois é assinante do store via useSelector.
-   */
+  /* ── CREATE ────────────────────────────────────────────────────────────── */
   const handleSalvar = (e) => {
     e.preventDefault();
     const novoJogador = {
-      id: `mock_${Math.random().toString(36).substr(2, 9)}`,
+      // O ID agora é gerado lá dentro do criarAtleta (no Slice), fingindo ser o banco de dados
       name: formulario.name,
       position: formulario.position,
       team: formulario.team,
@@ -121,18 +114,17 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       stats: {}
     };
 
-    dispatch(adicionarAtleta(novoJogador));
+    // Dispara o novo Thunk Assíncrono
+    dispatch(criarAtleta(novoJogador));
     setModalAberto(false);
     setFormulario({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
   };
 
-  /* ── DELETE ──────────────────────────────────────────────────────────────
-   * dispatch(excluirAtleta(id)) envia o ID como payload.
-   * O reducer filtra a lista removendo o jogador com aquele ID.
-   */
+  /* ── DELETE ────────────────────────────────────────────────────────────── */
   const handleExcluir = (id, nome) => {
     if (window.confirm(`Deseja mesmo remover o atleta ${nome} da base de dados?`)) {
-      dispatch(excluirAtleta(id));
+      // Dispara o novo Thunk Assíncrono
+      dispatch(deletarAtletaMock(id));
     }
   };
 
@@ -176,7 +168,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
         </div>
       )}
 
-      {/* FILTROS — controlados pelo useReducer [REQ: useReducer] */}
+      {/* FILTROS — controlados pelo useReducer */}
       <div className="atletas-filters">
         <div className="filter-search">
           <i className="fa-solid fa-magnifying-glass"></i>
@@ -196,7 +188,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
         </select>
       </div>
 
-      {/* [REQ: CRUD-Update] Modal de edição de atleta */}
+      {/* MODAL DE EDIÇÃO DE ATLETA */}
       {modalEdicaoAberto && jogadorEditando && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '400px' }}>
@@ -218,67 +210,75 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
         </div>
       )}
 
-      {/* LISTA DE JOGADORES COM BOTÕES DE EDITAR E DELETAR */}
-      <div className="atletas-list">
-        {visible.map(p => (
-          <div key={p.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* FEEDBACK DE LOADING OU LISTA DE JOGADORES */}
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px', color: '#94a3b8' }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
+          <h2>Processando dados...</h2>
+        </div>
+      ) : (
+        <div className="atletas-list">
+          {visible.map(p => (
+            <div key={p.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
 
-            <div style={{ position: 'absolute', top: '0px', right: '0px', zIndex: 10, display: 'flex', gap: '4px' }}>
-              {/* [REQ: CRUD-Update] Botão de editar que despacha atualizarAtleta */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleAbrirEdicao(p); }}
-                style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = '#ffffff'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)'; e.currentTarget.style.color = '#3b82f6'; }}
-                title="Editar Jogador"
-              >
-                <i className="fa-solid fa-pen"></i>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleExcluir(p.id, p.name); }}
-                style={{ 
-                  background: 'rgba(239, 68, 68, 0.15)', // Fundo avermelhado transparente
-                  color: '#ef4444', // Ícone vermelho vivo
-                  border: 'none', 
-                  borderRadius: '50%', // Faz ficar redondo perfeito
-                  width: '32px', // Largura e altura iguais
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer', 
-                  fontSize: '14px',
-                  transition: 'all 0.2s ease' // Suaviza a animação de hover
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#ef4444';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                  e.currentTarget.style.color = '#ef4444';
-                }}
-                title="Demitir Jogador"
-              >
-                <i className="fa-solid fa-trash"></i>
-              </button>
+              <div style={{ position: 'absolute', top: '10px', right: '80px', zIndex: 10, display: 'flex', gap: '8px' }}>
+                {/* Botão Editar */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAbrirEdicao(p); }}
+                  style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = '#ffffff'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)'; e.currentTarget.style.color = '#3b82f6'; }}
+                  title="Editar Jogador"
+                >
+                  <i className="fa-solid fa-pen"></i>
+                </button>
+                {/* Botão Excluir */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleExcluir(p.id, p.name); }}
+                  style={{ 
+                    background: 'rgba(239, 68, 68, 0.15)', 
+                    color: '#ef4444', 
+                    border: 'none', 
+                    borderRadius: '50%', 
+                    width: '32px', 
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer', 
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease' 
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#ef4444';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                    e.currentTarget.style.color = '#ef4444';
+                  }}
+                  title="Demitir Jogador"
+                >
+                  <i className="fa-solid fa-trash"></i>
+                </button>
+              </div>
+
+              {/* O Seu Card Intacto */}
+              <PlayerCard player={p} onClick={onPlayerClick} />
             </div>
+          ))}
 
-            {/* O Seu Card Intacto */}
-            <PlayerCard player={p} onClick={onPlayerClick} />
-          </div>
-        ))}
+          {visible.length === 0 && !loading && (
+            <div className="atletas-empty">
+              <i className="fa-solid fa-user-slash"></i>
+              <p>Nenhum atleta encontrado para os filtros selecionados.</p>
+            </div>
+          )}
+        </div>
+      )}
 
-        {visible.length === 0 && (
-          <div className="atletas-empty">
-            <i className="fa-solid fa-user-slash"></i>
-            <p>Nenhum atleta encontrado para os filtros selecionados.</p>
-          </div>
-        )}
-      </div>
-
-      {/* PAGINAÇÃO — usa dispatchFilter [REQ: useReducer] */}
-      {totalPages > 1 && (
+      {/* PAGINAÇÃO */}
+      {totalPages > 1 && !loading && (
         <div className="pagination">
           <button disabled={page === 1} onClick={() => dispatchFilter({ type: 'SET_PAGE', payload: page - 1 })}><i className="fa-solid fa-chevron-left"></i></button>
           {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
