@@ -11,25 +11,23 @@ import './ApoioDecisao.css';
 const allPlayers = enrichPlayers(playersData.athletes);
 
 const SCENARIO_META = {
-  1: { label: 'Máxima Performance', icon: 'fa-trophy',      color: '#f59e0b', desc: 'Maximiza o score de desempenho.' },
-  2: { label: 'Equilíbrio (ROI)',   icon: 'fa-chart-line',  color: '#14b8a6', desc: 'Maximiza o retorno sobre investimento.' },
+  1: { label: 'Máxima Performance', icon: 'fa-trophy', color: '#f59e0b', desc: 'Maximiza o score de desempenho.' },
+  2: { label: 'Equilíbrio (ROI)', icon: 'fa-chart-line', color: '#14b8a6', desc: 'Maximiza o retorno sobre investimento.' },
   3: { label: 'Conservador (Caixa)', icon: 'fa-piggy-bank', color: '#8b5cf6', desc: 'Menor custo total possível mantendo qualidade.' },
 };
 
 const POSITIONS = [
   { val: 'ATA', db: 'Forward', label: 'Atacante (ATA)' },
   { val: 'MEI', db: 'Midfielder', label: 'Meia (MEI)' },
-  { val: 'VOL', db: 'Midfielder', label: 'Volante (VOL)' },
-  { val: 'LAT', db: 'Defender', label: 'Lateral (LAT)' },
   { val: 'ZAG', db: 'Defender', label: 'Zagueiro (ZAG)' },
   { val: 'GOL', db: 'Goalkeeper', label: 'Goleiro (GOL)' },
 ];
 
 export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, onNavigate }) {
-  const [orcamento,    setOrcamento]    = useState(5000000);
+  const [orcamento, setOrcamento] = useState(5000000);
   const [tetoSalarial, setTetoSalarial] = useState(400000);
-  const [vagas,        setVagas]        = useState(3);
-  
+  const [vagas, setVagas] = useState(3);
+
   // Vagas Dinâmicas
   const [listaVagas, setListaVagas] = useState([
     { id: 1, pos: 'ATA', prio: 3 },
@@ -37,11 +35,11 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     { id: 3, pos: 'ZAG', prio: 1 },
   ]);
 
-  const [cenarios,  setCenarios]  = useState(null);
-  const [abaAtiva,  setAbaAtiva]  = useState(1);
-  const [loading,   setLoading]   = useState(false);
-  const [errors,    setErrors]    = useState({});
-  const [noResult,  setNoResult]  = useState(false);
+  const [cenarios, setCenarios] = useState(null);
+  const [abaAtiva, setAbaAtiva] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [noResult, setNoResult] = useState(false);
   const [modalPlayer, setModalPlayer] = useState(null);
 
   /*
@@ -117,8 +115,8 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
 
   const pacoteAtivo = cenarios ? cenarios[`cenario${abaAtiva}`] ?? [] : [];
   const investimentoTotal = pacoteAtivo.reduce((a, p) => a + p.marketValue, 0);
-  const folhaCalculada    = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
-  const scoreMedio        = pacoteAtivo.length > 0 ? (pacoteAtivo.reduce((a, p) => a + p.score, 0) / pacoteAtivo.length).toFixed(0) : '—';
+  const folhaCalculada = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
+  const scoreMedio = pacoteAtivo.length > 0 ? (pacoteAtivo.reduce((a, p) => a + p.score, 0) / pacoteAtivo.length).toFixed(0) : '—';
 
   return (
     <div className="apoio-decisao-page">
@@ -135,27 +133,27 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
 
           <div className="form-group">
             <label>Orçamento (R$)</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              value={orcamento ? orcamento.toLocaleString('pt-BR') : ''} 
+            <input
+              type="text"
+              className="form-control"
+              value={orcamento ? orcamento.toLocaleString('pt-BR') : ''}
               onChange={e => {
                 const raw = e.target.value.replace(/\D/g, '');
                 setOrcamento(raw ? parseInt(raw, 10) : 0);
-              }} 
+              }}
             />
           </div>
 
           <div className="form-group">
             <label>Teto Salarial Mensal (R$)</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              value={tetoSalarial ? tetoSalarial.toLocaleString('pt-BR') : ''} 
+            <input
+              type="text"
+              className="form-control"
+              value={tetoSalarial ? tetoSalarial.toLocaleString('pt-BR') : ''}
               onChange={e => {
                 const raw = e.target.value.replace(/\D/g, '');
                 setTetoSalarial(raw ? parseInt(raw, 10) : 0);
-              }} 
+              }}
             />
           </div>
 
@@ -196,7 +194,7 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
           </div>
 
           {loading && <div className="loading-state"><div className="spinner large"></div></div>}
-          
+
           {!loading && !cenarios && !noResult && (
             <div className="empty-state">
               <i className="fa-solid fa-brain"></i>
