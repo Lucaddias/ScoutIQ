@@ -12,7 +12,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import './Dashboard.css';
 
-const Dashboard = ({ page, onNavigate, pacoteSelecionado, setPacoteSelecionado }) => {
+// Removemos pacoteSelecionado e setPacoteSelecionado daqui!
+const Dashboard = ({ page, onNavigate }) => {
   const { user } = useAuth();
   const role = user?.role || 'user';
   const [modalPlayer, setModalPlayer] = useState(null);
@@ -26,12 +27,14 @@ const Dashboard = ({ page, onNavigate, pacoteSelecionado, setPacoteSelecionado }
         return <div className="main-content"><Inicio /></div>;
       case 'apoio_decisao':
         if (canAccess(['user', 'scout', 'admin'])) {
-          return <div className="main-content"><ApoioDecisao pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} onNavigate={onNavigate} /></div>;
+          // Removemos as props antigas do pacote aqui. Deixamos só o onNavigate.
+          return <div className="main-content"><ApoioDecisao onNavigate={onNavigate} /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'relatorios':
         if (canAccess(['user', 'scout', 'admin'])) {
-          return <div className="main-content"><Relatorios pacoteSelecionado={pacoteSelecionado} /></div>;
+          // A tela de relatórios agora vai puxar os dados sozinha do Redux!
+          return <div className="main-content"><Relatorios /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'atletas':

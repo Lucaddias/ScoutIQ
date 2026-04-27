@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas } from '../../store/atletasSlice';
 import { enrichPlayers } from '../../utils/playerScore.js';
+import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; // <-- Adicione o selectAllAtletas aqui
 import { formatBRL, positionFullLabel } from '../../utils/formatters.js';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import './Estatisticas.css';
@@ -10,14 +10,17 @@ const POS_ORDER = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_COLORS = { Forward: '#f59e0b', Midfielder: '#3b82f6', Defender: '#14b8a6', Goalkeeper: '#8b5cf6' };
 
 export default function Estatisticas({ onPlayerClick }) {
-  const { lista, loading } = useSelector((state) => state.atletas);
+  const jogadoresDoBanco = useSelector(selectAllAtletas);
+  const loading = useSelector((state) => state.atletas.loading);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (lista.length === 0) dispatch(fetchAtletas());
-  }, [dispatch, lista.length]);
+    if (jogadoresDoBanco.length === 0) dispatch(fetchAtletas());
+  }, [dispatch, jogadoresDoBanco.length]);
 
-  const players = useMemo(() => enrichPlayers(lista), [lista]);
+  const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
+ 
+
 
   const [expandedPos, setExpandedPos] = useState(null);
 

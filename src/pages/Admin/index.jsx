@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas, criarAtleta } from '../../store/atletasSlice';
+// 1. IMPORT NOVO ADICIONADO AQUI:
+import { fetchAtletas, criarAtleta, selectAllAtletas } from '../../store/atletasSlice'; 
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Admin.css';
@@ -9,7 +10,9 @@ const ROLE_LABELS = { admin: 'Administrador', scout: 'Olheiro', user: 'Usuário'
 const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
 
 export default function AdminPage() {
-  const { lista, loading } = useSelector((state) => state.atletas);
+  // 2. LEITURA DO REDUX CORRIGIDA AQUI:
+  const lista = useSelector(selectAllAtletas);
+  const loading = useSelector((state) => state.atletas.loading);
   const dispatch = useDispatch();
 
   useEffect(() => {

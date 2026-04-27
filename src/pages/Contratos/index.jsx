@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAtletas } from '../../store/atletasSlice';
+import { selectAllAtletas } from '../../store/atletasSlice';
 import { enrichPlayers } from '../../utils/playerScore.js';
 import { formatBRL } from '../../utils/formatters.js';
 import './Contratos.css';
@@ -26,15 +27,16 @@ function generateProposal(player) {
 }
 
 export default function Contratos() {
-  const { lista, loading } = useSelector((state) => state.atletas);
+  const jogadoresDoBanco = useSelector(selectAllAtletas);
+   const loading = useSelector((state) => state.atletas.loading);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (lista.length === 0) dispatch(fetchAtletas());
-  }, [dispatch, lista.length]);
+    if (jogadoresDoBanco.length === 0) dispatch(fetchAtletas());
+  }, [dispatch, jogadoresDoBanco.length]);
 
-  const allPlayers = useMemo(() => enrichPlayers(lista), [lista]);
-
+  const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
+  
   const [search, setSearch] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [proposal, setProposal] = useState(null);

@@ -7,6 +7,7 @@ import './Atletas.css';
  * HOOKS DO REDUX E NOVOS THUNKS ASSÍNCRONOS
  */
 import { useSelector, useDispatch } from 'react-redux';
+import { selectAllAtletas } from '../../store/atletasSlice';
 import { fetchAtletas, criarAtleta, atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
 
 const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
@@ -37,7 +38,8 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   /*
    * LEITURA DO STORE: Agora pegamos a lista E o estado de loading
    */
-  const { lista: jogadoresDoBanco, loading } = useSelector((state) => state.atletas);
+ const jogadoresDoBanco = useSelector(selectAllAtletas);
+ const loading = useSelector((state) => state.atletas.loading);
   const dispatch = useDispatch();
 
   // O GATILHO INICIAL: Busca os dados no JSON assim que a tela abre

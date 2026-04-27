@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas } from '../../store/atletasSlice';
+import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; // <-- ADAPTER AQUI
+import { simularCenarios, selecionarPacoteOficial } from '../../store/apoioSlice'; // <-- THUNKS DO APOIO AQUI
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
-import { gerarCenarios } from '../../utils/algorithm.js';
 import { formatBRL, clamp } from '../../utils/formatters.js';
 import './ApoioDecisao.css';
 
@@ -22,40 +22,37 @@ const POSITIONS = [
   { val: 'GOL', db: 'Goalkeeper', label: 'Goleiro (GOL)' },
 ];
 
-export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, onNavigate }) {
-  const { lista, loading: loadingAtletas } = useSelector((state) => state.atletas);
+// Tiramos pacoteSelecionado e setPacoteSelecionado daqui!
+export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 
-  useEffect(() => {
-    if (lista.length === 0) dispatch(fetchAtletas());
-  }, [dispatch, lista.length]);
+  // 1. Lendo os atletas com o Entity Adapter
+  const jogadoresDoBanco = useSelector(selectAllAtletas);
+  const loadingAtletas = useSelector((state) => state.atletas.loading);
+  
+  // 2. Lendo as simulações direto da gaveta de apoio
+  const { cenariosGerados, loadingSimulacao } = useSelector((state) => state.apoio);
 
-  const allPlayers = useMemo(() => enrichPlayers(lista), [lista]);
+  useEffect(() => {
+    if (jogadoresDoBanco.length === 0) dispatch(fetchAtletas());
+  }, [dispatch, jogadoresDoBanco.length]);
+
+  const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
   const [orcamento, setOrcamento] = useState(5000000);
   const [tetoSalarial, setTetoSalarial] = useState(400000);
   const [vagas, setVagas] = useState(3);
 
-  // Vagas Dinâmicas
   const [listaVagas, setListaVagas] = useState([
     { id: 1, pos: 'ATA', prio: 3 },
     { id: 2, pos: 'MEI', prio: 2 },
     { id: 3, pos: 'ZAG', prio: 1 },
   ]);
 
-  const [cenarios, setCenarios] = useState(null);
   const [abaAtiva, setAbaAtiva] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [noResult, setNoResult] = useState(false);
   const [modalPlayer, setModalPlayer] = useState(null);
 
-  /*
-   * handleVagasChange — sincroniza o número de vagas com a listaVagas.
-   * Quando aumenta, adiciona novas vagas com posição e prioridade padrão.
-   * Quando diminui, remove as últimas vagas da lista (splice).
-   * clamp garante que o valor fique entre 1 e 5.
-   */
   const handleVagasChange = (val) => {
     const newVal = clamp(val, 1, 5);
     setVagas(newVal);
@@ -72,7 +69,6 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     });
   };
 
-  /* updateVaga — atualiza um campo específico (posição ou prioridade) de uma vaga pelo índice. */
   const updateVaga = (index, field, val) => {
     setListaVagas(prev => {
       const copy = [...prev];
@@ -82,10 +78,7 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
   };
 
   /*
-   * handleGerar — valida os parâmetros e aciona o algoritmo de cenários.
-   * Mapeia as vagas do formato UI (ATA, MEI...) para o formato do banco (Forward, Midfielder...).
-   * O setTimeout de 600ms simula latência para exibir o spinner de loading.
-   * Chama gerarCenarios (algorithm.js) que retorna os 3 pacotes distintos.
+   * Aqui disparamos o Thunk para gerar cenários no Redux
    */
   const handleGerar = () => {
     const errs = {};
@@ -94,37 +87,31 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
-    setLoading(true);
-    setNoResult(false);
+    setAbaAtiva(1);
 
     const mappedVagas = listaVagas.map(v => ({
       dbPos: POSITIONS.find(p => p.val === v.pos).db,
       prio: Number(v.prio)
     }));
 
-    setTimeout(() => {
-      const result = gerarCenarios(allPlayers, { orcamento, tetoSalarial, vagasArray: mappedVagas });
-      setCenarios(result);
-      setAbaAtiva(1);
-      setLoading(false);
-      if (result.cenario1.length === 0) setNoResult(true);
-    }, 600);
+    const config = { orcamento, tetoSalarial, vagasArray: mappedVagas };
+    
+    // Dispara a action assíncrona!
+    dispatch(simularCenarios({ allPlayers, config }));
   };
 
   /*
-   * handleGerarRelatorioOficial — passa o pacote do cenário ativo para o estado global
-   * (via setPacoteSelecionado em App.jsx) e navega para a página de Relatórios.
+   * Salva o pacote no Redux e navega para os Relatórios
    */
   const handleGerarRelatorioOficial = () => {
-    const pacoteAtivo = cenarios[`cenario${abaAtiva}`];
-    setPacoteSelecionado(pacoteAtivo);
+    const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
+    dispatch(selecionarPacoteOficial(pacoteAtivo));
     onNavigate('relatorios');
   };
 
-  const pacoteAtivo = cenarios ? cenarios[`cenario${abaAtiva}`] ?? [] : [];
+  const pacoteAtivo = cenariosGerados ? cenariosGerados[`cenario${abaAtiva}`] ?? [] : [];
   const investimentoTotal = pacoteAtivo.reduce((a, p) => a + p.marketValue, 0);
   const folhaCalculada = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
-  const scoreMedio = pacoteAtivo.length > 0 ? (pacoteAtivo.reduce((a, p) => a + p.score, 0) / pacoteAtivo.length).toFixed(0) : '—';
 
   if (loadingAtletas) {
     return (
@@ -196,30 +183,30 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
             ))}
           </div>
 
-          <button className="btn-gerar" onClick={handleGerar} disabled={loading}>
-            {loading ? <><div className="spinner"></div> Calculando...</> : <><i className="fa-solid fa-bolt"></i> Gerar Cenários</>}
+          <button className="btn-gerar" onClick={handleGerar} disabled={loadingSimulacao}>
+            {loadingSimulacao ? <><div className="spinner"></div> Calculando...</> : <><i className="fa-solid fa-bolt"></i> Gerar Cenários</>}
           </button>
         </div>
 
         <div className="card results-card">
           <div className="scenario-tabs">
             {[1, 2, 3].map(n => (
-              <button key={n} className={`tab ${abaAtiva === n ? 'active' : ''} ${!cenarios ? 'disabled' : ''}`} onClick={() => cenarios && setAbaAtiva(n)}>
+              <button key={n} className={`tab ${abaAtiva === n ? 'active' : ''} ${!cenariosGerados ? 'disabled' : ''}`} onClick={() => cenariosGerados && setAbaAtiva(n)}>
                 <i className={`fa-solid ${SCENARIO_META[n].icon}`}></i> Cenário {n}
               </button>
             ))}
           </div>
 
-          {loading && <div className="loading-state"><div className="spinner large"></div></div>}
+          {loadingSimulacao && <div className="loading-state"><div className="spinner large"></div></div>}
 
-          {!loading && !cenarios && !noResult && (
+          {!loadingSimulacao && !cenariosGerados && (
             <div className="empty-state">
               <i className="fa-solid fa-brain"></i>
               <h4>Pronto para simular</h4>
             </div>
           )}
 
-          {!loading && cenarios && pacoteAtivo.length > 0 && (
+          {!loadingSimulacao && cenariosGerados && pacoteAtivo.length > 0 && (
             <>
               <div className="results-metrics">
                 <div className="metric-box"><span>Custo Total</span><strong>{formatBRL(investimentoTotal)}</strong></div>

@@ -1,14 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import atletasReducer from './atletasSlice';
+import apoioReducer from './apoioSlice'; // <-- Nova importação
 
 /*
- * STORE GLOBAL (Redux)
- * configureStore cria o "cofre central" da aplicação.
- * Cada chave dentro de reducer representa uma fatia (slice) do estado global.
- * Qualquer componente pode ler ou modificar esses dados usando useSelector e useDispatch.
- */
+ * STORE GLOBAL (Redux)
+ * Centralizamos todas as "fatias" (slices) da aplicação aqui.
+ */
 export const store = configureStore({
-  reducer: {
-    atletas: atletasReducer, // fatia responsável por toda a lista de atletas
-  },
+  reducer: {
+    atletas: atletasReducer, // Cuida do CRUD e do EntityAdapter dos jogadores
+    apoio: apoioReducer,     // Cuida da matemática dos cenários e do relatório
+  },
 });

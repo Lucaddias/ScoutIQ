@@ -1,9 +1,16 @@
 import React from 'react';
+import { useSelector } from 'react-redux'; // O único hook que precisamos do Redux aqui!
 import PlayerCard from '../../components/PlayerCard.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Relatorios.css';
 
-export default function Relatorios({ pacoteSelecionado }) {
+// Remova o "{ pacoteSelecionado }" daqui de dentro dos parênteses
+export default function Relatorios() {
+  
+  // 1. Puxe a variável direto da gaveta 'apoio' que criamos
+  const pacoteSelecionado = useSelector((state) => state.apoio.pacoteSelecionado);
+
+  // Se o usuário entrar direto na tela sem gerar o cenário, mostramos o aviso
   if (!pacoteSelecionado || pacoteSelecionado.length === 0) {
     return (
       <div className="relatorios-page">
@@ -21,6 +28,7 @@ export default function Relatorios({ pacoteSelecionado }) {
     );
   }
 
+  // 2. Se o pacote existe, calcula e renderiza o PDF
   const investimentoTotal = pacoteSelecionado.reduce((a, p) => a + p.marketValue, 0);
   const folhaCalculada    = pacoteSelecionado.reduce((a, p) => a + p.monthlySalary, 0);
 
