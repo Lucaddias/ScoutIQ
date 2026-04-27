@@ -10,11 +10,7 @@ import Perfil from '../Perfil/index.jsx';
 import AdminPage from '../Admin/index.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
-import playersData from '../../data/players_updated.json';
-import { enrichPlayers } from '../../utils/playerScore.js';
 import './Dashboard.css';
-
-const allPlayers = enrichPlayers(playersData.athletes);
 
 const Dashboard = ({ page, onNavigate, pacoteSelecionado, setPacoteSelecionado }) => {
   const { user } = useAuth();
@@ -30,18 +26,18 @@ const Dashboard = ({ page, onNavigate, pacoteSelecionado, setPacoteSelecionado }
         return <div className="main-content"><Inicio /></div>;
       case 'apoio_decisao':
         if (canAccess(['user', 'scout', 'admin'])) {
-            return <div className="main-content"><ApoioDecisao pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} onNavigate={onNavigate} /></div>;
+          return <div className="main-content"><ApoioDecisao pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} onNavigate={onNavigate} /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'relatorios':
         if (canAccess(['user', 'scout', 'admin'])) {
-            return <div className="main-content"><Relatorios pacoteSelecionado={pacoteSelecionado} /></div>;
+          return <div className="main-content"><Relatorios pacoteSelecionado={pacoteSelecionado} /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'atletas':
         return <div className="main-with-sidebar"><Atletas onPlayerClick={setModalPlayer} /></div>;
       case 'estatisticas':
-        return <div className="main-with-sidebar"><Estatisticas players={allPlayers} onPlayerClick={setModalPlayer} /></div>;
+        return <div className="main-with-sidebar"><Estatisticas onPlayerClick={setModalPlayer} /></div>;
       case 'contratos':
         if (canAccess(['scout', 'admin'])) return <div className="main-with-sidebar"><Contratos /></div>;
         return <div className="main-content"><h2>Acesso Negado</h2></div>;

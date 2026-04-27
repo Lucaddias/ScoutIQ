@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchAtletas } from '../../store/atletasSlice';
+import { enrichPlayers } from '../../utils/playerScore.js';
 import { formatBRL, positionFullLabel } from '../../utils/formatters.js';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import './Estatisticas.css';
@@ -6,8 +9,17 @@ import './Estatisticas.css';
 const POS_ORDER = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_COLORS = { Forward: '#f59e0b', Midfielder: '#3b82f6', Defender: '#14b8a6', Goalkeeper: '#8b5cf6' };
 
-export default function Estatisticas({ players, onPlayerClick }) {
-  const [expandedPos, setExpandedPos] = useState(null); // position string or null
+export default function Estatisticas({ onPlayerClick }) {
+  const { lista, loading } = useSelector((state) => state.atletas);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (lista.length === 0) dispatch(fetchAtletas());
+  }, [dispatch, lista.length]);
+
+  const players = useMemo(() => enrichPlayers(lista), [lista]);
+
+  const [expandedPos, setExpandedPos] = useState(null);
 
   /*
    * useMemo: cálculo de todas as estatísticas derivadas da lista de jogadores.
@@ -43,7 +55,7 @@ export default function Estatisticas({ players, onPlayerClick }) {
       .slice(0, 5);
 
     const totalMarketValue = players.reduce((a, p) => a + p.marketValue, 0);
-    const avgMarketValue   = totalMarketValue / total;
+    const avgMarketValue   = total > 0 ? totalMarketValue / total : 0;
 
     return { total, byPos, topScorers, topAssists, topScore, totalMarketValue, avgMarketValue };
   }, [players]);
@@ -52,6 +64,15 @@ export default function Estatisticas({ players, onPlayerClick }) {
   const togglePos = (pos) => {
     setExpandedPos(prev => prev === pos ? null : pos);
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
+        <h2>Processando dados...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="stats-page">

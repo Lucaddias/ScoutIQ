@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchAtletas } from '../../store/atletasSlice';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
-import playersData from '../../data/players_updated.json';
 import { enrichPlayers } from '../../utils/playerScore.js';
 import { gerarCenarios } from '../../utils/algorithm.js';
 import { formatBRL, clamp } from '../../utils/formatters.js';
 import './ApoioDecisao.css';
-
-const allPlayers = enrichPlayers(playersData.athletes);
 
 const SCENARIO_META = {
   1: { label: 'Máxima Performance', icon: 'fa-trophy', color: '#f59e0b', desc: 'Maximiza o score de desempenho.' },
@@ -24,6 +23,15 @@ const POSITIONS = [
 ];
 
 export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, onNavigate }) {
+  const { lista, loading: loadingAtletas } = useSelector((state) => state.atletas);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (lista.length === 0) dispatch(fetchAtletas());
+  }, [dispatch, lista.length]);
+
+  const allPlayers = useMemo(() => enrichPlayers(lista), [lista]);
+
   const [orcamento, setOrcamento] = useState(5000000);
   const [tetoSalarial, setTetoSalarial] = useState(400000);
   const [vagas, setVagas] = useState(3);
@@ -117,6 +125,15 @@ export default function ApoioDecisao({ pacoteSelecionado, setPacoteSelecionado, 
   const investimentoTotal = pacoteAtivo.reduce((a, p) => a + p.marketValue, 0);
   const folhaCalculada = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
   const scoreMedio = pacoteAtivo.length > 0 ? (pacoteAtivo.reduce((a, p) => a + p.score, 0) / pacoteAtivo.length).toFixed(0) : '—';
+
+  if (loadingAtletas) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
+        <h2>Carregando atletas...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="apoio-decisao-page">
