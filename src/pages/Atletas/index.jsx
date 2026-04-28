@@ -221,9 +221,14 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       ) : (
         <div className="atletas-list">
           {visible.map(p => (
-            <div key={p.id} style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <div key={p.id} style={{ display: 'flex', alignItems: 'stretch', gap: '8px' }}>
+              {/* O Seu Card Intacto */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PlayerCard player={p} onClick={onPlayerClick} />
+              </div>
 
-              <div style={{ position: 'absolute', top: '10px', right: '80px', zIndex: 10, display: 'flex', gap: '8px' }}>
+              {/* Coluna de ações ao lado do card — não sobrepõe mais nada */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', flexShrink: 0 }}>
                 {/* Botão Editar */}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAbrirEdicao(p); }}
@@ -237,36 +242,14 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
                 {/* Botão Excluir */}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleExcluir(p.id, p.name); }}
-                  style={{ 
-                    background: 'rgba(239, 68, 68, 0.15)', 
-                    color: '#ef4444', 
-                    border: 'none', 
-                    borderRadius: '50%', 
-                    width: '32px', 
-                    height: '32px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer', 
-                    fontSize: '14px',
-                    transition: 'all 0.2s ease' 
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = '#ef4444';
-                    e.currentTarget.style.color = '#ffffff';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-                    e.currentTarget.style.color = '#ef4444';
-                  }}
+                  style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#ffffff'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = '#ef4444'; }}
                   title="Demitir Jogador"
                 >
                   <i className="fa-solid fa-trash"></i>
                 </button>
               </div>
-
-              {/* O Seu Card Intacto */}
-              <PlayerCard player={p} onClick={onPlayerClick} />
             </div>
           ))}
 
