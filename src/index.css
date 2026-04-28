@@ -49,3 +49,11 @@ input, select { font-family: var(--font); }
   display: inline-block;
   vertical-align: middle;
 }
+
+.hook-error {
+  color: #f87171;
+  font-size: 11.5px;
+  margin-top: 6px;
+  display: block;
+  font-weight: 500;
+}

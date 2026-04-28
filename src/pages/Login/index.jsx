@@ -1,16 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import yup from '../../utils/yupConfig.js';
 import './Login.css';
+
+const loginSchema = yup.object().shape({
+  email: yup.string().email().required(),
+  password: yup.string().min(6).required(),
+});
+
+const signupSchema = yup.object().shape({
+  name: yup.string().max(100).required(),
+  email: yup.string().email().required(),
+  password: yup.string().min(6).required(),
+});
 
 const Login = ({ onNavigate }) => {
   const { login, signup, loginAsGuest } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: yupResolver(isSignUp ? signupSchema : loginSchema),
+    defaultValues: { name: '', email: '', password: '' }
+  });
+
+  useEffect(() => {
+    reset({ name: '', email: '', password: '' });
+    setError('');
+    setSuccess('');
+  }, [isSignUp, reset]);
 
   /*
    * handleSubmit — gerencia o fluxo de login e cadastro no mesmo formulário.
@@ -18,22 +40,12 @@ const Login = ({ onNavigate }) => {
    * Chama signup ou login do AuthContext dependendo do modo ativo (isSignUp).
    * Em caso de sucesso, navega para o dashboard; em caso de erro, exibe a mensagem traduzida.
    */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setError('');
     setSuccess('');
-
-    if (!email || !password) {
-      setError('Por favor preencha todos os campos.');
-      return;
-    }
-
-    if (isSignUp && password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-
     setLoading(true);
+
+    const { email, password, name } = data;
 
     try {
       if (isSignUp) {
@@ -106,7 +118,7 @@ const Login = ({ onNavigate }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           {error && (
             <div className="login-error">
               <i className="fa-solid fa-circle-exclamation"></i> {error}
@@ -126,10 +138,10 @@ const Login = ({ onNavigate }) => {
                 <input
                   type="text"
                   placeholder="Seu nome completo"
-                  value={name}
-                  onChange={e => { setName(e.target.value); setError(''); }}
+                  {...register('name')}
                 />
               </div>
+              {errors.name && <span className="hook-error">{errors.name.message}</span>}
             </div>
           )}
 
@@ -140,11 +152,10 @@ const Login = ({ onNavigate }) => {
               <input
                 type="email"
                 placeholder="seu@email.com"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setError(''); }}
-                required
+                {...register('email')}
               />
             </div>
+            {errors.email && <span className="hook-error">{errors.email.message}</span>}
           </div>
 
           <div className="input-group">
@@ -154,12 +165,10 @@ const Login = ({ onNavigate }) => {
               <input
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setError(''); }}
-                required
-                minLength={isSignUp ? 6 : undefined}
+                {...register('password')}
               />
             </div>
+            {errors.password && <span className="hook-error">{errors.password.message}</span>}
             {isSignUp && (
               <small className="password-hint">Mínimo 6 caracteres</small>
             )}

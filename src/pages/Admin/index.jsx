@@ -3,11 +3,23 @@ import { useSelector, useDispatch } from 'react-redux';
 // 1. IMPORT NOVO ADICIONADO AQUI:
 import { fetchAtletas, criarAtleta, selectAllAtletas } from '../../store/atletasSlice'; 
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import yup from '../../utils/yupConfig.js';
 import { formatBRL } from '../../utils/formatters.js';
 import './Admin.css';
 
 const ROLE_LABELS = { admin: 'Administrador', scout: 'Olheiro', user: 'Usuário' };
 const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
+
+const jogadorSchema = yup.object().shape({
+  name: yup.string().max(100).required(),
+  team: yup.string().max(100).required(),
+  position: yup.string().required(),
+  age: yup.number().transform((value) => (Number.isNaN(value) ? undefined : value)).notRequired(),
+  marketValue: yup.number().typeError('Deve ser um número').positive('Deve ser maior que zero').required(),
+  monthlySalary: yup.number().transform((value) => (Number.isNaN(value) ? undefined : value)).notRequired(),
+});
 
 export default function AdminPage() {
   // 2. LEITURA DO REDUX CORRIGIDA AQUI:
@@ -23,9 +35,12 @@ export default function AdminPage() {
 
   const [toast, setToast] = useState(null);
 
-  const [form, setForm] = useState({
-    name: '', team: '', position: 'Forward',
-    marketValue: '', monthlySalary: '', age: '',
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    resolver: yupResolver(jogadorSchema),
+    defaultValues: {
+      name: '', team: '', position: 'Forward',
+      marketValue: '', monthlySalary: '', age: ''
+    }
   });
 
   /*
@@ -45,25 +60,19 @@ export default function AdminPage() {
    * O jogador entra no store global e fica visível em Atletas, Contratos e ApoioDecisao.
    * O salário mensal usa fallback de 2% do valor de mercado se não preenchido.
    */
-  const handleAddPlayer = (e) => {
-    e.preventDefault();
-    if (!form.name || !form.team || !form.marketValue) {
-      setToast('Preencha os campos obrigatórios.');
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
+  const handleAddPlayer = (data) => {
     const newPlayer = {
-      name: form.name,
-      team: form.team,
-      position: form.position,
-      marketValue: Number(form.marketValue),
-      monthlySalary: Number(form.monthlySalary) || Math.round(Number(form.marketValue) * 0.02),
-      age: Number(form.age) || 25,
+      name: data.name,
+      team: data.team,
+      position: data.position,
+      marketValue: Number(data.marketValue),
+      monthlySalary: Number(data.monthlySalary) || Math.round(Number(data.marketValue) * 0.02),
+      age: Number(data.age) || 25,
       profileImageURL: '',
       statistics: { goals: 0, assists: 0 },
     };
     dispatch(criarAtleta(newPlayer));
-    setForm({ name: '', team: '', position: 'Forward', marketValue: '', monthlySalary: '', age: '' });
+    reset();
     setToast(`Jogador ${newPlayer.name} adicionado com sucesso!`);
     setTimeout(() => setToast(null), 3000);
   };
@@ -128,40 +137,46 @@ export default function AdminPage() {
           <div className="col-md-6">
             <div className="admin-card">
               <h3><i className="fa-solid fa-user-plus"></i> Adicionar Jogador</h3>
-              <form className="add-player-form" onSubmit={handleAddPlayer}>
+              <form className="add-player-form" onSubmit={handleSubmit(handleAddPlayer)}>
                 <div className="form-row">
                   <div className="form-group">
                     <label>Nome do Jogador *</label>
-                    <input type="text" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ex: João Silva" />
+                    <input type="text" {...register('name')} placeholder="Ex: João Silva" />
+                    {errors.name && <span className="hook-error">{errors.name.message}</span>}
                   </div>
                   <div className="form-group">
                     <label>Clube *</label>
-                    <input type="text" value={form.team} onChange={e => setForm(p => ({ ...p, team: e.target.value }))} placeholder="Ex: Palmeiras" />
+                    <input type="text" {...register('team')} placeholder="Ex: Palmeiras" />
+                    {errors.team && <span className="hook-error">{errors.team.message}</span>}
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
                     <label>Posição</label>
-                    <select value={form.position} onChange={e => setForm(p => ({ ...p, position: e.target.value }))}>
+                    <select {...register('position')}>
                       <option value="Forward">Atacante</option>
                       <option value="Midfielder">Meia</option>
                       <option value="Defender">Zagueiro</option>
                       <option value="Goalkeeper">Goleiro</option>
                     </select>
+                    {errors.position && <span className="hook-error">{errors.position.message}</span>}
                   </div>
                   <div className="form-group">
                     <label>Idade</label>
-                    <input type="number" value={form.age} onChange={e => setForm(p => ({ ...p, age: e.target.value }))} placeholder="25" />
+                    <input type="number" {...register('age')} placeholder="25" />
+                    {errors.age && <span className="hook-error">{errors.age.message}</span>}
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
                     <label>Valor de Mercado (R$) *</label>
-                    <input type="number" value={form.marketValue} onChange={e => setForm(p => ({ ...p, marketValue: e.target.value }))} placeholder="5000000" />
+                    <input type="number" {...register('marketValue')} placeholder="5000000" />
+                    {errors.marketValue && <span className="hook-error">{errors.marketValue.message}</span>}
                   </div>
                   <div className="form-group">
                     <label>Salário Mensal (R$)</label>
-                    <input type="number" value={form.monthlySalary} onChange={e => setForm(p => ({ ...p, monthlySalary: e.target.value }))} placeholder="100000" />
+                    <input type="number" {...register('monthlySalary')} placeholder="100000" />
+                    {errors.monthlySalary && <span className="hook-error">{errors.monthlySalary.message}</span>}
                   </div>
                 </div>
                 <button type="submit" className="btn-add-player">
