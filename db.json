@@ -9103,6 +9103,94 @@
           "score": 100
         }
       ]
+    },
+    {
+      "id": "Oq9i_2y24Lk",
+      "nome": "teste",
+      "dataCriacao": "2026-05-03T20:06:11.929Z",
+      "atletas": [
+        {
+          "id": "SF-840219",
+          "championshipId": "BRSERIE-A-2025",
+          "name": "Pedro",
+          "position": "Forward",
+          "age": 30,
+          "nationality": "Brazilian",
+          "marketValue": 37770000,
+          "monthlySalary": 680000,
+          "currency": "BRL",
+          "team": "Flamengo",
+          "profileImageURL": "https://api.sofascore.com/api/v1/player/840219/image",
+          "statistics": {
+            "gamesPlayed": 20,
+            "goals": 12,
+            "assists": 3,
+            "totalPasses": 505,
+            "accuratePasses": 449,
+            "tackles": 11,
+            "interceptions": 7,
+            "yellowCards": 3,
+            "redCards": 1,
+            "minutesPlayed": 1625,
+            "distanceCoveredKm": 168.8
+          },
+          "score": 100
+        },
+        {
+          "id": "SF-840451",
+          "championshipId": "BRSERIE-A-2025",
+          "name": "Luiz Araújo",
+          "position": "Midfielder",
+          "age": 32,
+          "nationality": "Brazilian",
+          "marketValue": 52600000,
+          "monthlySalary": 1130000,
+          "currency": "BRL",
+          "team": "Palmeiras",
+          "profileImageURL": "https://api.sofascore.com/api/v1/player/840451/image",
+          "statistics": {
+            "gamesPlayed": 9,
+            "goals": 1,
+            "assists": 3,
+            "totalPasses": 435,
+            "accuratePasses": 335,
+            "tackles": 32,
+            "interceptions": 16,
+            "yellowCards": 1,
+            "redCards": 0,
+            "minutesPlayed": 772,
+            "distanceCoveredKm": 71.6
+          },
+          "score": 100
+        },
+        {
+          "id": "SF-869643",
+          "championshipId": "BRSERIE-A-2025",
+          "name": "Léo Ortiz",
+          "position": "Defender",
+          "age": 28,
+          "nationality": "Brazilian",
+          "marketValue": 20750000,
+          "monthlySalary": 360000,
+          "currency": "BRL",
+          "team": "Flamengo",
+          "profileImageURL": "https://api.sofascore.com/api/v1/player/869643/image",
+          "statistics": {
+            "gamesPlayed": 17,
+            "goals": 0,
+            "assists": 0,
+            "totalPasses": 683,
+            "accuratePasses": 552,
+            "tackles": 132,
+            "interceptions": 63,
+            "yellowCards": 3,
+            "redCards": 0,
+            "minutesPlayed": 1500,
+            "distanceCoveredKm": 165
+          },
+          "score": 100
+        }
+      ]
     }
   ],
   "propostas": [
@@ -9135,7 +9223,23 @@
       "proposedSalary": 174509,
       "duration": 2,
       "bonusPerformance": 475000
+    },
+    {
+      "id": "gKOxYlTAEUU",
+      "tipo": "proposta",
+      "dataCriacao": "2026-05-03T19:53:56.023Z",
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogadorNome": "coelho",
+      "jogadorTime": "barcelona",
+      "jogadorPosicao": "Forward",
+      "jogadorFoto": "",
+      "jogadorScore": 0,
+      "proposedValue": 9000000,
+      "proposedSalary": 500000,
+      "duration": 1,
+      "bonusPerformance": 200000,
+      "clausula": 0,
+      "observacoes": "Merece muito dinheiro, jogador excelente, nível messi."
     }
-  ],
-  "$schema": "./node_modules/json-server/schema.json"
+  ]
 }
