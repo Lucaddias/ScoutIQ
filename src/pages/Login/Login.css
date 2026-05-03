@@ -19,6 +19,12 @@
   max-width: 420px;
   backdrop-filter: blur(20px);
   box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.login-card form {
+  width: 100%;
 }
 
 .login-logo {
@@ -71,7 +77,10 @@
   gap: 8px;
 }
 
-.input-group { margin-bottom: 18px; }
+.input-group {
+  margin-bottom: 18px;
+  width: 100%;
+}
 
 .input-group label {
   display: block;
@@ -87,15 +96,20 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 .input-wrapper i {
   position: absolute;
   left: 14px;
   color: rgba(255,255,255,0.3);
   font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
 }
 .input-wrapper input {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
