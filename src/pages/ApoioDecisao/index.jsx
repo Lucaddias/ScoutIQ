@@ -104,10 +104,29 @@ export default function ApoioDecisao({ onNavigate }) {
    * Salva o pacote no Redux e navega para os Relatórios
    */
   const handleGerarRelatorioOficial = () => {
+    // 1. Pega os jogadores do cenário que está selecionado na tela
     const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
     
-    // Dispara a requisição para salvar no banco. Quando terminar, navega para o relatório!
-    dispatch(salvarPacoteOficial(pacoteAtivo)).then(() => {
+    // Trava de segurança: se por acaso não tiver jogadores, ele avisa e para.
+    if (!pacoteAtivo || pacoteAtivo.length === 0) {
+      alert("Nenhum jogador encontrado neste cenário para salvar.");
+      return;
+    }
+
+    // 2. Pede o nome para o usuário usando um pop-up nativo
+    const nomeDigitado = window.prompt("Dê um título para este relatório (ex: Reforços Zaga, Opções Baratas...):");
+
+    // 3. Se o usuário clicou em "Cancelar" ou deixou vazio, interrompe a ação
+    if (!nomeDigitado || nomeDigitado.trim() === '') {
+      return; 
+    }
+
+    // 4. Envia pro Redux NO FORMATO CORRETO que configuramos (como um Objeto)
+    dispatch(salvarPacoteOficial({ 
+      pacoteArray: pacoteAtivo, 
+      nomeRelatorio: nomeDigitado 
+    })).then(() => {
+      // Quando terminar de salvar no banco, joga o usuário pra tela de relatórios
       onNavigate('relatorios');
     });
   };

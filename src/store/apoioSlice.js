@@ -12,26 +12,55 @@ export const simularCenarios = createAsyncThunk(
   }
 );
 
-// 2. NOVO: THUNK PARA SALVAR O RELATÓRIO NO BANCO DE DADOS
+// 2. SALVAR O RELATÓRIO NO BANCO DE DADOS (POST)
 export const salvarPacoteOficial = createAsyncThunk(
   'apoio/salvarRelatorio',
-  async (pacoteArray) => {
-    // Montamos um objeto legal para salvar no banco
+  async ({ pacoteArray, nomeRelatorio }) => { 
     const novoRelatorio = {
       id: `rel_${Date.now()}`,
+      nome: nomeRelatorio, 
       dataCriacao: new Date().toISOString(),
       atletas: pacoteArray
     };
-
-    // Salvamos no JSON Server
+    
     await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(novoRelatorio)
     });
+    
+    return novoRelatorio; 
+  }
+);
 
-    // Retornamos apenas a array de jogadores para não quebrar a sua tela de Relatórios!
-    return pacoteArray; 
+// 3. BUSCAR HISTÓRICO DE RELATÓRIOS (GET) - ESSA FALTAVA!
+export const fetchRelatorios = createAsyncThunk(
+  'apoio/fetchRelatorios', 
+  async () => {
+    const response = await fetch(API_URL);
+    return await response.json();
+  }
+);
+
+// 4. EXCLUIR UM RELATÓRIO DO HISTÓRICO (DELETE) - ESSA FALTAVA!
+export const deletarRelatorio = createAsyncThunk(
+  'apoio/deletarRelatorio', 
+  async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    return id;
+  }
+);
+// 5. ATUALIZAR O NOME DO RELATÓRIO (PATCH)
+export const renomearRelatorio = createAsyncThunk(
+  'apoio/renomearRelatorio', 
+  async ({ id, novoNome }) => {
+    // Usamos PATCH porque queremos alterar APENAS o nome, sem mexer nos atletas
+    const response = await fetch(`${API_URL}/${id}`, { 
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome: novoNome })
+    });
+    return await response.json();
   }
 );
 
@@ -40,10 +69,15 @@ const apoioSlice = createSlice({
   initialState: {
     cenariosGerados: null,
     loadingSimulacao: false,
-    loadingRelatorio: false, // Novo state para o botão de gerar relatório
+    loadingRelatorio: false,
     pacoteSelecionado: null, 
+    historicoRelatorios: [], 
+    loadingHistorico: false, 
   },
   reducers: {
+    selecionarPacoteOficial: (state, action) => {
+      state.pacoteSelecionado = action.payload;
+    },
     limparSimulacao: (state) => {
       state.cenariosGerados = null;
       state.pacoteSelecionado = null;
@@ -52,8 +86,8 @@ const apoioSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // --- SIMULAR CENÁRIOS ---
-      .addCase(simularCenarios.pending, (state) => {
-        state.loadingSimulacao = true;
+      .addCase(simularCenarios.pending, (state) => { 
+        state.loadingSimulacao = true; 
       })
       .addCase(simularCenarios.fulfilled, (state, action) => {
         state.loadingSimulacao = false;
@@ -61,15 +95,40 @@ const apoioSlice = createSlice({
       })
       
       // --- SALVAR RELATÓRIO NO BANCO ---
-      .addCase(salvarPacoteOficial.pending, (state) => {
-        state.loadingRelatorio = true;
+      .addCase(salvarPacoteOficial.pending, (state) => { 
+        state.loadingRelatorio = true; 
       })
       .addCase(salvarPacoteOficial.fulfilled, (state, action) => {
         state.loadingRelatorio = false;
-        state.pacoteSelecionado = action.payload; // Guarda a array na gaveta para a tela de Relatórios ler
+        state.pacoteSelecionado = action.payload; 
+      })
+
+      // --- BUSCAR HISTÓRICO DE RELATÓRIOS ---
+      .addCase(fetchRelatorios.pending, (state) => { 
+        state.loadingHistorico = true; 
+      })
+      .addCase(fetchRelatorios.fulfilled, (state, action) => {
+        state.loadingHistorico = false;
+        // Verifica se é realmente um array. Se não for, assume array vazio.
+        const dados = Array.isArray(action.payload) ? action.payload : [];
+        state.historicoRelatorios = [...dados].reverse(); 
+      })
+
+      // --- RENOMEAR RELATÓRIO ---
+      .addCase(renomearRelatorio.fulfilled, (state, action) => {
+        // Encontra o relatório na lista e atualiza o nome dele instantaneamente na tela
+        const index = state.historicoRelatorios.findIndex(r => r.id === action.payload.id);
+        if (index !== -1) {
+          state.historicoRelatorios[index].nome = action.payload.nome;
+        }
+      })
+
+      // --- DELETAR RELATÓRIO ---
+      .addCase(deletarRelatorio.fulfilled, (state, action) => {
+        state.historicoRelatorios = state.historicoRelatorios.filter(r => r.id !== action.payload);
       });
   }
 });
 
-export const { limparSimulacao } = apoioSlice.actions;
+export const { limparSimulacao, selecionarPacoteOficial } = apoioSlice.actions;
 export default apoioSlice.reducer;
