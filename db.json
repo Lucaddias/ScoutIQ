@@ -18,7 +18,7 @@
       "marketValue": 52600000,
       "monthlySalary": 1130000,
       "currency": "BRL",
-      "team": "Flamengo",
+      "team": "Palmeiras",
       "profileImageURL": "https://api.sofascore.com/api/v1/player/840451/image",
       "statistics": {
         "gamesPlayed": 9,
@@ -32,7 +32,8 @@
         "redCards": 0,
         "minutesPlayed": 772,
         "distanceCoveredKm": 71.6
-      }
+      },
+      "score": 100
     },
     {
       "id": "SF-1514629",
@@ -9022,6 +9023,15 @@
       "stats": {},
       "id": "oL4fiYAJWw8",
       "score": 0
+    },
+    {
+      "name": "ronilson",
+      "position": "Forward",
+      "team": "Flamengo",
+      "marketValue": 999999999,
+      "monthlySalary": 999999999,
+      "stats": {},
+      "id": "Z3QvOL8Pwyo"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

@@ -8,7 +8,7 @@ import './Atletas.css';
  */
 import { useSelector, useDispatch } from 'react-redux';
 import { selectAllAtletas } from '../../store/atletasSlice';
-import { fetchAtletas, criarAtleta, atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
+import { fetchAtletas, criarAtleta } from '../../store/atletasSlice';
 
 const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
@@ -63,8 +63,6 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [formulario, setFormulario] = useState({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
 
-  const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
-  const [jogadorEditando, setJogadorEditando] = useState(null);
 
   // Lógica de Filtros
   const teams = useMemo(() => {
@@ -89,20 +87,6 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  /* ── UPDATE ────────────────────────────────────────────────────────────── */
-  const handleAbrirEdicao = (jogador) => {
-    setJogadorEditando({ ...jogador });
-    setModalEdicaoAberto(true);
-  };
-
-  const handleSalvarEdicao = (e) => {
-    e.preventDefault();
-    // Dispara o novo Thunk Assíncrono
-    dispatch(atualizarAtletaMock(jogadorEditando));
-    setModalEdicaoAberto(false);
-    setJogadorEditando(null);
-  };
-
   /* ── CREATE ────────────────────────────────────────────────────────────── */
   const handleSalvar = (e) => {
     e.preventDefault();
@@ -122,13 +106,6 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
     setFormulario({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
   };
 
-  /* ── DELETE ────────────────────────────────────────────────────────────── */
-  const handleExcluir = (id, nome) => {
-    if (window.confirm(`Deseja mesmo remover o atleta ${nome} da base de dados?`)) {
-      // Dispara o novo Thunk Assíncrono
-      dispatch(deletarAtletaMock(id));
-    }
-  };
 
   return (
     <div className="atletas-page">
@@ -190,27 +167,6 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
         </select>
       </div>
 
-      {/* MODAL DE EDIÇÃO DE ATLETA */}
-      {modalEdicaoAberto && jogadorEditando && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '400px' }}>
-            <h3 style={{ marginTop: 0, color: 'white' }}>Editar Atleta</h3>
-            <form onSubmit={handleSalvarEdicao} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <input required placeholder="Nome do Jogador" value={jogadorEditando.name} onChange={e => setJogadorEditando({ ...jogadorEditando, name: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <select value={jogadorEditando.position} onChange={e => setJogadorEditando({ ...jogadorEditando, position: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}>
-                {POSITIONS.filter(p => p !== 'Todos').map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
-              </select>
-              <input required placeholder="Clube" value={jogadorEditando.team || ''} onChange={e => setJogadorEditando({ ...jogadorEditando, team: e.target.value })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <input type="number" placeholder="Valor de Mercado (€)" value={jogadorEditando.marketValue || ''} onChange={e => setJogadorEditando({ ...jogadorEditando, marketValue: Number(e.target.value) })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <input type="number" placeholder="Salário Mensal (€)" value={jogadorEditando.monthlySalary || ''} onChange={e => setJogadorEditando({ ...jogadorEditando, monthlySalary: Number(e.target.value) })} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={{ flex: 1, background: '#10b981', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Salvar Alterações</button>
-                <button type="button" onClick={() => setModalEdicaoAberto(false)} style={{ flex: 1, background: '#ef4444', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* FEEDBACK DE LOADING OU LISTA DE JOGADORES */}
       {loading ? (
@@ -221,36 +177,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       ) : (
         <div className="atletas-list">
           {visible.map(p => (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'stretch', gap: '8px' }}>
-              {/* O Seu Card Intacto */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <PlayerCard player={p} onClick={onPlayerClick} />
-              </div>
-
-              {/* Coluna de ações ao lado do card — não sobrepõe mais nada */}
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '6px', flexShrink: 0 }}>
-                {/* Botão Editar */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleAbrirEdicao(p); }}
-                  style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = '#3b82f6'; e.currentTarget.style.color = '#ffffff'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)'; e.currentTarget.style.color = '#3b82f6'; }}
-                  title="Editar Jogador"
-                >
-                  <i className="fa-solid fa-pen"></i>
-                </button>
-                {/* Botão Excluir */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleExcluir(p.id, p.name); }}
-                  style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#ffffff'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = '#ef4444'; }}
-                  title="Demitir Jogador"
-                >
-                  <i className="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </div>
+            <PlayerCard key={p.id} player={p} onClick={onPlayerClick} />
           ))}
 
           {visible.length === 0 && !loading && (
