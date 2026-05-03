@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; // <-- ADAPTER AQUI
-import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice'; // <-- THUNK AQUI
+import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; 
+import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice'; 
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
 import { formatBRL, clamp } from '../../utils/formatters.js';
 import './ApoioDecisao.css';
+import ModalNomeRelatorio from '../../components/ModalNomeRelatorio.jsx';
 
 const SCENARIO_META = {
   1: { label: 'Máxima Performance', icon: 'fa-trophy', color: '#f59e0b', desc: 'Maximiza o score de desempenho.' },
@@ -22,7 +23,6 @@ const POSITIONS = [
   { val: 'GOL', db: 'Goalkeeper', label: 'Goleiro (GOL)' },
 ];
 
-// Tiramos pacoteSelecionado e setPacoteSelecionado daqui!
 export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 
@@ -52,6 +52,9 @@ export default function ApoioDecisao({ onNavigate }) {
   const [abaAtiva, setAbaAtiva] = useState(1);
   const [errors, setErrors] = useState({});
   const [modalPlayer, setModalPlayer] = useState(null);
+  
+  // NOVO: Estado para controlar se o Modal de Nomear Relatório está aberto
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleVagasChange = (val) => {
     const newVal = clamp(val, 1, 5);
@@ -77,9 +80,6 @@ export default function ApoioDecisao({ onNavigate }) {
     });
   };
 
-  /*
-   * Aqui disparamos o Thunk para gerar cenários no Redux
-   */
   const handleGerar = () => {
     const errs = {};
     if (!orcamento || orcamento <= 0) errs.orcamento = 'Inválido (> 0).';
@@ -96,38 +96,35 @@ export default function ApoioDecisao({ onNavigate }) {
 
     const config = { orcamento, tetoSalarial, vagasArray: mappedVagas };
     
-    // Dispara a action assíncrona!
     dispatch(simularCenarios({ allPlayers, config }));
   };
 
   /*
-   * Salva o pacote no Redux e navega para os Relatórios
+   * FUNÇÃO 1: Apenas verifica se tem jogador e ABRE O MODAL
    */
   const handleGerarRelatorioOficial = () => {
-    // 1. Pega os jogadores do cenário que está selecionado na tela
     const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
     
-    // Trava de segurança: se por acaso não tiver jogadores, ele avisa e para.
     if (!pacoteAtivo || pacoteAtivo.length === 0) {
       alert("Nenhum jogador encontrado neste cenário para salvar.");
       return;
     }
 
-    // 2. Pede o nome para o usuário usando um pop-up nativo
-    const nomeDigitado = window.prompt("Dê um título para este relatório (ex: Reforços Zaga, Opções Baratas...):");
+    setIsModalOpen(true); // Chama o modal bonito ao invés do window.prompt!
+  };
 
-    // 3. Se o usuário clicou em "Cancelar" ou deixou vazio, interrompe a ação
-    if (!nomeDigitado || nomeDigitado.trim() === '') {
-      return; 
-    }
-
-    // 4. Envia pro Redux NO FORMATO CORRETO que configuramos (como um Objeto)
+  /*
+   * FUNÇÃO 2: Disparada pelo Modal quando o usuário clica em "Gerar Relatório"
+   */
+  const confirmarSalvamento = (nomeDigitado) => {
+    const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
+    
     dispatch(salvarPacoteOficial({ 
       pacoteArray: pacoteAtivo, 
       nomeRelatorio: nomeDigitado 
     })).then(() => {
-      // Quando terminar de salvar no banco, joga o usuário pra tela de relatórios
-      onNavigate('relatorios');
+      setIsModalOpen(false); // Fecha o modal
+      onNavigate('relatorios'); // Redireciona
     });
   };
 
@@ -257,6 +254,13 @@ export default function ApoioDecisao({ onNavigate }) {
         </div>
       </div>
       <PlayerModal player={modalPlayer} onClose={() => setModalPlayer(null)} />
+      
+      {/* NOVO: Modal customizado para substituir o window.prompt */}
+      <ModalNomeRelatorio 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={confirmarSalvamento}
+      />
     </div>
   );
 }
