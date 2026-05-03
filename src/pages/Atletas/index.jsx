@@ -14,6 +14,25 @@ const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
 const PAGE_SIZE = 12;
 
+const TIMES_BR = [
+  'América-MG', 'Athletico-PR', 'Atlético-GO', 'Atlético-MG', 'Avaí', 'Bahia',
+  'Botafogo', 'Ceará', 'Chapecoense', 'Corinthians', 'Coritiba', 'Cuiabá',
+  'Cruzeiro', 'Flamengo', 'Fluminense', 'Fortaleza', 'Goiás', 'Grêmio',
+  'Internacional', 'Juventude', 'Mirassol', 'Palmeiras', 'Red Bull Bragantino',
+  'Remo', 'Santos', 'São Paulo', 'Vasco da Gama', 'Vitória',
+];
+
+const inputStyle = {
+  padding: '10px 12px', borderRadius: '6px',
+  border: '1px solid #334155', background: '#0f172a',
+  color: 'white', width: '100%', boxSizing: 'border-box', fontSize: '14px',
+};
+
+const labelStyle = {
+  fontSize: '11px', color: '#94a3b8', fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: '0.05em',
+};
+
 // Reducer para gerenciar todos os filtros da listagem
 const filterReducer = (state, action) => {
   switch (action.type) {
@@ -61,7 +80,19 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
 
   // Estados dos Modais
   const [modalAberto, setModalAberto] = useState(false);
-  const [formulario, setFormulario] = useState({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
+  const [formulario, setFormulario] = useState({ name: '', position: 'Forward', team: '', marketValue: '', monthlySalary: '' });
+
+  const setFormField = (field, rawValue) => {
+    const isMonetary = field === 'marketValue' || field === 'monthlySalary';
+    if (isMonetary) {
+      const digits = rawValue.replace(/[^\d]/g, '');
+      setFormulario(f => ({ ...f, [field]: digits ? Number(digits).toLocaleString('pt-BR') : '' }));
+    } else {
+      setFormulario(f => ({ ...f, [field]: rawValue }));
+    }
+  };
+
+  const parseBR = (str) => Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
 
 
   // Lógica de Filtros
@@ -91,19 +122,16 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const handleSalvar = (e) => {
     e.preventDefault();
     const novoJogador = {
-      // O ID agora é gerado lá dentro do criarAtleta (no Slice), fingindo ser o banco de dados
       name: formulario.name,
       position: formulario.position,
       team: formulario.team,
-      marketValue: Number(formulario.marketValue),
-      monthlySalary: Number(formulario.monthlySalary),
+      marketValue: parseBR(formulario.marketValue),
+      monthlySalary: parseBR(formulario.monthlySalary),
       stats: {}
     };
-
-    // Dispara o novo Thunk Assíncrono
     dispatch(criarAtleta(novoJogador));
     setModalAberto(false);
-    setFormulario({ name: '', position: 'Forward', team: '', marketValue: 0, monthlySalary: 0 });
+    setFormulario({ name: '', position: 'Forward', team: '', marketValue: '', monthlySalary: '' });
   };
 
 
@@ -126,21 +154,65 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
 
       {/* JANELA MODAL DE CADASTRO */}
       {modalAberto && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '400px' }}>
-            <h3 style={{ marginTop: 0, color: 'white' }}>Cadastrar Atleta</h3>
-            <form onSubmit={handleSalvar} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <input required placeholder="Nome do Jogador" value={formulario.name} onChange={e => setFormulario({...formulario, name: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <select value={formulario.position} onChange={e => setFormulario({...formulario, position: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}>
-                {POSITIONS.filter(p => p !== 'Todos').map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
-              </select>
-              <input required placeholder="Clube" value={formulario.team} onChange={e => setFormulario({...formulario, team: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <input type="number" required placeholder="Valor de Mercado (€)" value={formulario.marketValue || ''} onChange={e => setFormulario({...formulario, marketValue: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              <input type="number" required placeholder="Salário Mensal (€)" value={formulario.monthlySalary || ''} onChange={e => setFormulario({...formulario, monthlySalary: e.target.value})} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }} />
-              
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={{ flex: 1, background: '#3b82f6', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Salvar</button>
-                <button type="button" onClick={() => setModalAberto(false)} style={{ flex: 1, background: '#ef4444', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '420px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
+            <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Cadastrar Atleta</h3>
+            <form onSubmit={handleSalvar} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Nome</label>
+                <input required placeholder="Nome do Jogador" value={formulario.name} onChange={e => setFormField('name', e.target.value)} style={inputStyle} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Posição</label>
+                <select value={formulario.position} onChange={e => setFormField('position', e.target.value)} style={inputStyle}>
+                  {POSITIONS.filter(p => p !== 'Todos').map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Clube</label>
+                <input
+                  list="times-br-novo"
+                  required
+                  placeholder="Digite ou selecione o clube"
+                  value={formulario.team}
+                  onChange={e => setFormField('team', e.target.value)}
+                  style={inputStyle}
+                />
+                <datalist id="times-br-novo">
+                  {TIMES_BR.map(t => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Valor de Mercado (R$)</label>
+                <input
+                  inputMode="numeric"
+                  required
+                  placeholder="Ex: 1.000.000"
+                  value={formulario.marketValue}
+                  onChange={e => setFormField('marketValue', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={labelStyle}>Salário Mensal (R$)</label>
+                <input
+                  inputMode="numeric"
+                  required
+                  placeholder="Ex: 50.000"
+                  value={formulario.monthlySalary}
+                  onChange={e => setFormField('monthlySalary', e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button type="submit" style={{ flex: 1, background: '#10b981', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Salvar</button>
+                <button type="button" onClick={() => setModalAberto(false)} style={{ flex: 1, background: '#334155', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
               </div>
             </form>
           </div>
