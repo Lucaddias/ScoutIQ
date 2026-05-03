@@ -1,33 +1,40 @@
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 
-// 1. READ
+// O endereço onde o JSON Server está rodando
+const API_URL = 'http://localhost:3001/athletes';
+// 1. READ: Busca os dados reais da API
 export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  const response = await fetch('/players_updated.json');
-  if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
-  const data = await response.json();
-  return data.athletes || data || [];
+  const response = await fetch(API_URL);
+  if (!response.ok) throw new Error('Erro ao buscar atletas');
+  return await response.json(); // Retorna o array de atletas
 });
 
-// 2. CREATE
+// 2. CREATE: Faz um POST para a API (O JSON Server cria o ID automaticamente!)
 export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJogador) => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return {
-    ...novoJogador,
-    id: `mock_${Math.random().toString(36).substr(2, 9)}`
-  };
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(novoJogador)
+  });
+  return await response.json(); // Retorna o jogador criado (com o ID novo)
 });
 
-// 3. UPDATE
+// 3. UPDATE: Faz um PUT para a API
 export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return jogador; 
+  const response = await fetch(`${API_URL}/${jogador.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(jogador)
+  });
+  return await response.json(); // Retorna o jogador atualizado
 });
 
-// 4. DELETE
+// 4. DELETE: Faz um DELETE para a API
 export const deletarAtletaMock = createAsyncThunk('atletas/deletarAtleta', async (id) => {
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return id; 
+  await fetch(`${API_URL}/${id}`, { 
+    method: 'DELETE' 
+  });
+  return id; // Retornamos o ID para o Redux saber quem remover da tela
 });
 
 // ==========================================

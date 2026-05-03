@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; // <-- ADAPTER AQUI
-import { simularCenarios, selecionarPacoteOficial } from '../../store/apoioSlice'; // <-- THUNKS DO APOIO AQUI
+import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice'; // <-- THUNK AQUI
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
@@ -105,8 +105,11 @@ export default function ApoioDecisao({ onNavigate }) {
    */
   const handleGerarRelatorioOficial = () => {
     const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
-    dispatch(selecionarPacoteOficial(pacoteAtivo));
-    onNavigate('relatorios');
+    
+    // Dispara a requisição para salvar no banco. Quando terminar, navega para o relatório!
+    dispatch(salvarPacoteOficial(pacoteAtivo)).then(() => {
+      onNavigate('relatorios');
+    });
   };
 
   const pacoteAtivo = cenariosGerados ? cenariosGerados[`cenario${abaAtiva}`] ?? [] : [];
