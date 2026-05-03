@@ -83,7 +83,7 @@ function StatBar({ label, value, max, unit, color }) {
   );
 }
 
-export default function PlayerModal({ player, onClose }) {
+export default function PlayerModal({ player, onClose, onEdit, onDelete }) {
   if (!player) return null;
 
   const s = player.statistics || {};
@@ -103,9 +103,21 @@ export default function PlayerModal({ player, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
-          <i className="fa-solid fa-xmark"></i>
-        </button>
+        <div className="modal-actions-top">
+          {onEdit && (
+            <button className="modal-action-btn modal-action-edit" onClick={() => onEdit(player)} title="Editar Atleta">
+              <i className="fa-solid fa-pen"></i>
+            </button>
+          )}
+          {onDelete && (
+            <button className="modal-action-btn modal-action-delete" onClick={() => onDelete(player)} title="Excluir Atleta">
+              <i className="fa-solid fa-trash"></i>
+            </button>
+          )}
+          <button className="modal-close" onClick={onClose}>
+            <i className="fa-solid fa-xmark"></i>
+          </button>
+        </div>
 
         {/* Header */}
         <div className="modal-header">

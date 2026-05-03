@@ -18,7 +18,7 @@
       "marketValue": 52600000,
       "monthlySalary": 1130000,
       "currency": "BRL",
-      "team": "Flamengo",
+      "team": "Palmeiras",
       "profileImageURL": "https://api.sofascore.com/api/v1/player/840451/image",
       "statistics": {
         "gamesPlayed": 9,
@@ -32,7 +32,8 @@
         "redCards": 0,
         "minutesPlayed": 772,
         "distanceCoveredKm": 71.6
-      }
+      },
+      "score": 100
     },
     {
       "id": "SF-1514629",

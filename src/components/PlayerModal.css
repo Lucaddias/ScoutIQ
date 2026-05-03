@@ -28,9 +28,43 @@
 }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-.modal-close {
+.modal-actions-top {
   position: absolute;
   top: 16px; right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-action-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+.modal-action-edit {
+  background: rgba(59,130,246,0.12);
+  color: #3b82f6;
+}
+.modal-action-edit:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+.modal-action-delete {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+}
+.modal-action-delete:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.modal-close {
   width: 32px; height: 32px;
   border-radius: 50%;
   background: rgba(255,255,255,0.06);

@@ -70,27 +70,35 @@
   grid-column: 1 / -1;
 }
 
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
 .inicio-table {
   width: 100%;
+  min-width: 320px;
   border-collapse: collapse;
-  margin-top: 16px;
 }
 
 .inicio-table th {
   text-align: left;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   background: rgba(15, 23, 42, 0.5);
+  white-space: nowrap;
 }
 
 .inicio-table td {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
   color: #f8fafc;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .inicio-table tr:last-child td {

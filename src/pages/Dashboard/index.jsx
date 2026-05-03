@@ -9,15 +9,47 @@ import Contratos from '../Contratos/index.jsx';
 import Perfil from '../Perfil/index.jsx';
 import AdminPage from '../Admin/index.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useDispatch } from 'react-redux';
+import { atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import './Dashboard.css';
 
-// Removemos pacoteSelecionado e setPacoteSelecionado daqui!
+const POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
+const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
+
+const TIMES_BR = [
+  'América-MG', 'Athletico-PR', 'Atlético-GO', 'Atlético-MG', 'Avaí', 'Bahia',
+  'Botafogo', 'Ceará', 'Chapecoense', 'Corinthians', 'Coritiba', 'Cuiabá',
+  'Cruzeiro', 'Flamengo', 'Fluminense', 'Fortaleza', 'Goiás', 'Grêmio',
+  'Internacional', 'Juventude', 'Mirassol', 'Palmeiras', 'Red Bull Bragantino',
+  'Remo', 'Santos', 'São Paulo', 'Vasco da Gama', 'Vitória',
+];
+
+const inputStyle = {
+  padding: '10px 12px', borderRadius: '6px',
+  border: '1px solid #334155', background: '#0f172a',
+  color: 'white', width: '100%', boxSizing: 'border-box', fontSize: '14px',
+};
+
+const formatBR = (value) => {
+  const num = Number(String(value).replace(/\./g, '').replace(',', '.'));
+  if (!value && value !== 0) return '';
+  if (isNaN(num)) return String(value);
+  return num.toLocaleString('pt-BR');
+};
+
+const parseBR = (str) => {
+  if (!str) return 0;
+  return Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
+};
+
 const Dashboard = ({ page, onNavigate }) => {
   const { user } = useAuth();
   const role = user?.role || 'user';
+  const dispatch = useDispatch();
   const [modalPlayer, setModalPlayer] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [editPlayer, setEditPlayer] = useState(null);
 
   const canAccess = (required) => required.includes(role);
 
@@ -54,6 +86,25 @@ const Dashboard = ({ page, onNavigate }) => {
     }
   };
 
+  const handleEditPlayer = (player) => {
+    setModalPlayer(null);
+    setEditPlayer({ ...player });
+  };
+
+  const handleDeletePlayer = (player) => {
+    if (window.confirm(`Deseja mesmo remover ${player.name} da base de dados?`)) {
+      dispatch(deletarAtletaMock(player.id));
+      setModalPlayer(null);
+    }
+  };
+
+  const handleSalvarEdicao = (e) => {
+    e.preventDefault();
+    const { _marketValueDisplay, _salaryDisplay, ...playerData } = editPlayer;
+    dispatch(atualizarAtletaMock(playerData));
+    setEditPlayer(null);
+  };
+
   const handleNavigate = (target) => {
     onNavigate(target);
     setSidebarOpen(false);
@@ -77,7 +128,93 @@ const Dashboard = ({ page, onNavigate }) => {
 
       <Sidebar page={page} onNavigate={handleNavigate} isOpen={sidebarOpen} />
       {renderContent()}
-      <PlayerModal player={modalPlayer} onClose={() => setModalPlayer(null)} />
+      <PlayerModal
+        player={modalPlayer}
+        onClose={() => setModalPlayer(null)}
+        onEdit={handleEditPlayer}
+        onDelete={handleDeletePlayer}
+      />
+
+      {/* Modal de Edição */}
+      {editPlayer && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
+          <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '420px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
+            <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Editar Atleta</h3>
+            <form onSubmit={handleSalvarEdicao} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</label>
+                <input required placeholder="Nome do Jogador" value={editPlayer.name} onChange={e => setEditPlayer({ ...editPlayer, name: e.target.value })} style={inputStyle} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posição</label>
+                <select value={editPlayer.position} onChange={e => setEditPlayer({ ...editPlayer, position: e.target.value })} style={inputStyle}>
+                  {POSITIONS.map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clube</label>
+                <input
+                  list="times-br-list"
+                  required
+                  placeholder="Digite ou selecione o clube"
+                  value={editPlayer.team || ''}
+                  onChange={e => setEditPlayer({ ...editPlayer, team: e.target.value })}
+                  style={inputStyle}
+                />
+                <datalist id="times-br-list">
+                  {TIMES_BR.map(t => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valor de Mercado (R$)</label>
+                <input
+                  inputMode="numeric"
+                  placeholder="Ex: 1.000.000"
+                  value={editPlayer._marketValueDisplay ?? formatBR(editPlayer.marketValue)}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^\d]/g, '');
+                    const num = Number(raw);
+                    setEditPlayer({
+                      ...editPlayer,
+                      marketValue: num,
+                      _marketValueDisplay: raw ? num.toLocaleString('pt-BR') : '',
+                    });
+                  }}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Salário Mensal (R$)</label>
+                <input
+                  inputMode="numeric"
+                  placeholder="Ex: 50.000"
+                  value={editPlayer._salaryDisplay ?? formatBR(editPlayer.monthlySalary)}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^\d]/g, '');
+                    const num = Number(raw);
+                    setEditPlayer({
+                      ...editPlayer,
+                      monthlySalary: num,
+                      _salaryDisplay: raw ? num.toLocaleString('pt-BR') : '',
+                    });
+                  }}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                <button type="submit" style={{ flex: 1, background: '#10b981', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Salvar Alterações</button>
+                <button type="button" onClick={() => setEditPlayer(null)} style={{ flex: 1, background: '#334155', color: 'white', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

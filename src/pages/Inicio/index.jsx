@@ -38,44 +38,48 @@ const Inicio = () => {
       <div className="inicio-grid">
         <div className="card">
           <h3><i className="fa-solid fa-medal"></i> Artilheiros do Campeonato</h3>
-          <table className="inicio-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Clube</th>
-                <th>Gols</th>
-                <th>Partidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>Germán Cano</td><td>Fluminense</td><td>12</td><td>14</td></tr>
-              <tr><td>Pedro</td><td>Flamengo</td><td>11</td><td>13</td></tr>
-              <tr><td>Tiquinho Soares</td><td>Botafogo</td><td>10</td><td>15</td></tr>
-              <tr><td>Vitor Roque</td><td>Athletico-PR</td><td>9</td><td>14</td></tr>
-              <tr><td>Calleri</td><td>São Paulo</td><td>8</td><td>12</td></tr>
-            </tbody>
-          </table>
+          <div className="table-wrapper">
+            <table className="inicio-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Clube</th>
+                  <th>Gols</th>
+                  <th>Partidas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Germán Cano</td><td>Fluminense</td><td>12</td><td>14</td></tr>
+                <tr><td>Pedro</td><td>Flamengo</td><td>11</td><td>13</td></tr>
+                <tr><td>Tiquinho Soares</td><td>Botafogo</td><td>10</td><td>15</td></tr>
+                <tr><td>Vitor Roque</td><td>Athletico-PR</td><td>9</td><td>14</td></tr>
+                <tr><td>Calleri</td><td>São Paulo</td><td>8</td><td>12</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="card">
           <h3><i className="fa-solid fa-handshake-angle"></i> Maiores Assistentes</h3>
-          <table className="inicio-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Clube</th>
-                <th>Assistências</th>
-                <th>Partidas</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>Jhon Arias</td><td>Fluminense</td><td>8</td><td>15</td></tr>
-              <tr><td>Arrascaeta</td><td>Flamengo</td><td>7</td><td>12</td></tr>
-              <tr><td>Raphael Veiga</td><td>Palmeiras</td><td>6</td><td>14</td></tr>
-              <tr><td>Everton Ribeiro</td><td>Bahia</td><td>5</td><td>15</td></tr>
-              <tr><td>Ganso</td><td>Fluminense</td><td>5</td><td>14</td></tr>
-            </tbody>
-          </table>
+          <div className="table-wrapper">
+            <table className="inicio-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Clube</th>
+                  <th>Assistências</th>
+                  <th>Partidas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Jhon Arias</td><td>Fluminense</td><td>8</td><td>15</td></tr>
+                <tr><td>Arrascaeta</td><td>Flamengo</td><td>7</td><td>12</td></tr>
+                <tr><td>Raphael Veiga</td><td>Palmeiras</td><td>6</td><td>14</td></tr>
+                <tr><td>Everton Ribeiro</td><td>Bahia</td><td>5</td><td>15</td></tr>
+                <tr><td>Ganso</td><td>Fluminense</td><td>5</td><td>14</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="card full-width">
