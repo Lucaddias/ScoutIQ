@@ -9105,5 +9105,37 @@
       ]
     }
   ],
+  "propostas": [
+    {
+      "id": "Nci02GeOpQ8",
+      "tipo": "proposta",
+      "dataCriacao": "2026-05-03T17:39:52.736Z",
+      "jogadorId": "SF-1883297",
+      "jogadorNome": "Douglas Costa Telles",
+      "jogadorTime": "Flamengo U17",
+      "jogadorPosicao": "Forward",
+      "jogadorFoto": "https://api.sofascore.com/api/v1/player/1883297/image",
+      "jogadorScore": 100,
+      "proposedValue": 67391355,
+      "proposedSalary": 1664337,
+      "duration": 3,
+      "bonusPerformance": 3880000
+    },
+    {
+      "id": "yTxisp1KlPw",
+      "tipo": "proposta",
+      "dataCriacao": "2026-05-03T17:41:08.552Z",
+      "jogadorId": "SF-1602833",
+      "jogadorNome": "João Victor",
+      "jogadorTime": "Flamengo U20",
+      "jogadorPosicao": "Defender",
+      "jogadorFoto": "https://api.sofascore.com/api/v1/player/1602833/image",
+      "jogadorScore": 100,
+      "proposedValue": 8144898,
+      "proposedSalary": 174509,
+      "duration": 2,
+      "bonusPerformance": 475000
+    }
+  ],
   "$schema": "./node_modules/json-server/schema.json"
 }

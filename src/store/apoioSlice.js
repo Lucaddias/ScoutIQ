@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gerarCenarios } from '../utils/algorithm.js';
 
-const API_URL = 'http://localhost:3001/relatorios';
+const API_URL       = 'http://localhost:3001/relatorios';
+const PROPOSTAS_URL = 'http://localhost:3001/propostas';
 
 // 1. A MATEMÁTICA CONTINUA LOCAL: O algoritmo roda aqui no front-end
 export const simularCenarios = createAsyncThunk(
@@ -50,7 +51,50 @@ export const deletarRelatorio = createAsyncThunk(
     return id;
   }
 );
-// 5. ATUALIZAR O NOME DO RELATÓRIO (PATCH)
+// 5. SALVAR PROPOSTA DE CONTRATO (POST)
+export const salvarProposta = createAsyncThunk(
+  'apoio/salvarProposta',
+  async ({ player, proposal }) => {
+    const nova = {
+      id: `prop_${Date.now()}`,
+      tipo: 'proposta',
+      dataCriacao: new Date().toISOString(),
+      jogadorId: player.id,
+      jogadorNome: player.name,
+      jogadorTime: player.team,
+      jogadorPosicao: player.position,
+      jogadorFoto: player.profileImageURL || '',
+      jogadorScore: player.score,
+      ...proposal,
+    };
+    await fetch(PROPOSTAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(nova),
+    });
+    return nova;
+  }
+);
+
+// 6. BUSCAR PROPOSTAS (GET)
+export const fetchPropostas = createAsyncThunk(
+  'apoio/fetchPropostas',
+  async () => {
+    const response = await fetch(PROPOSTAS_URL);
+    return await response.json();
+  }
+);
+
+// 7. DELETAR PROPOSTA (DELETE)
+export const deletarProposta = createAsyncThunk(
+  'apoio/deletarProposta',
+  async (id) => {
+    await fetch(`${PROPOSTAS_URL}/${id}`, { method: 'DELETE' });
+    return id;
+  }
+);
+
+// 8. ATUALIZAR O NOME DO RELATÓRIO (PATCH)
 export const renomearRelatorio = createAsyncThunk(
   'apoio/renomearRelatorio', 
   async ({ id, novoNome }) => {
@@ -70,9 +114,11 @@ const apoioSlice = createSlice({
     cenariosGerados: null,
     loadingSimulacao: false,
     loadingRelatorio: false,
-    pacoteSelecionado: null, 
-    historicoRelatorios: [], 
-    loadingHistorico: false, 
+    pacoteSelecionado: null,
+    historicoRelatorios: [],
+    loadingHistorico: false,
+    propostas: [],
+    loadingPropostas: false,
   },
   reducers: {
     selecionarPacoteOficial: (state, action) => {
@@ -126,6 +172,24 @@ const apoioSlice = createSlice({
       // --- DELETAR RELATÓRIO ---
       .addCase(deletarRelatorio.fulfilled, (state, action) => {
         state.historicoRelatorios = state.historicoRelatorios.filter(r => r.id !== action.payload);
+      })
+
+      // --- SALVAR PROPOSTA ---
+      .addCase(salvarProposta.fulfilled, (state, action) => {
+        state.propostas.unshift(action.payload);
+      })
+
+      // --- BUSCAR PROPOSTAS ---
+      .addCase(fetchPropostas.pending, (state) => { state.loadingPropostas = true; })
+      .addCase(fetchPropostas.fulfilled, (state, action) => {
+        state.loadingPropostas = false;
+        const dados = Array.isArray(action.payload) ? action.payload : [];
+        state.propostas = [...dados].reverse();
+      })
+
+      // --- DELETAR PROPOSTA ---
+      .addCase(deletarProposta.fulfilled, (state, action) => {
+        state.propostas = state.propostas.filter(p => p.id !== action.payload);
       });
   }
 });
