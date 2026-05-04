@@ -90,6 +90,16 @@ export default function Estatisticas({ onPlayerClick }) {
   ]);
   const [bulkData, setBulkData] = useState(new Date().toISOString().split('T')[0]);
 
+  /* ─── Table Pagination State ─── */
+  const [mostrarHistoricoCompleto, setMostrarHistoricoCompleto] = useState(false);
+
+  const registrosExibidos = useMemo(() => {
+    if (!registros) return [];
+    // Ordenar do mais recente para o mais antigo (usando a data ou invertendo o array)
+    const ordenados = [...registros].sort((a, b) => new Date(b.data) - new Date(a.data));
+    return mostrarHistoricoCompleto ? ordenados : ordenados.slice(0, 10);
+  }, [registros, mostrarHistoricoCompleto]);
+
   /* ─── Player Search State ─── */
   const [playerSearch, setPlayerSearch] = useState('');
   const [playerDropdownOpen, setPlayerDropdownOpen] = useState(false);
@@ -161,7 +171,7 @@ export default function Estatisticas({ onPlayerClick }) {
       .slice(0, 5);
 
     const totalMarketValue = players.reduce((a, p) => a + p.marketValue, 0);
-    const avgMarketValue   = total > 0 ? totalMarketValue / total : 0;
+    const avgMarketValue = total > 0 ? totalMarketValue / total : 0;
 
     return { total, byPos, topScorers, topAssists, topScore, totalMarketValue, avgMarketValue };
   }, [players]);
@@ -378,7 +388,7 @@ export default function Estatisticas({ onPlayerClick }) {
               </tr>
             </thead>
             <tbody>
-              {registros.length === 0 ? (
+              {registrosExibidos.length === 0 ? (
                 <tr>
                   <td colSpan={isAdmin ? 6 : 5} className="crud-empty">
                     <i className="fa-solid fa-inbox"></i>
@@ -386,7 +396,7 @@ export default function Estatisticas({ onPlayerClick }) {
                   </td>
                 </tr>
               ) : (
-                registros.map((reg, idx) => (
+                registrosExibidos.map((reg, idx) => (
                   <tr key={reg.id} className="crud-row">
                     <td className="td-index">{idx + 1}</td>
                     <td className="td-jogador">
@@ -438,6 +448,26 @@ export default function Estatisticas({ onPlayerClick }) {
             </tbody>
           </table>
         </div>
+
+        {registros.length > 10 && (
+          <div className="crud-history-toggle" style={{ textAlign: 'center', marginTop: '20px' }}>
+            <button
+              className="crud-btn crud-btn-cancel"
+              onClick={() => setMostrarHistoricoCompleto(!mostrarHistoricoCompleto)}
+              style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              {mostrarHistoricoCompleto ? (
+                <>
+                  <i className="fa-solid fa-chevron-up"></i> Mostrar Menos
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-chevron-down"></i> Ver Histórico de Registros Completo
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {!isAdmin && (
           <div className="crud-readonly-notice">

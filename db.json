@@ -22,7 +22,7 @@
       "profileImageURL": "https://api.sofascore.com/api/v1/player/840451/image",
       "statistics": {
         "gamesPlayed": 9,
-        "goals": 22,
+        "goals": 21,
         "assists": 14,
         "totalPasses": 455,
         "accuratePasses": 335,
@@ -9016,7 +9016,8 @@
       "statistics": {
         "goals": 6,
         "gamesPlayed": 2,
-        "assists": 1
+        "assists": 1,
+        "tackles": 3
       }
     },
     {
@@ -9335,8 +9336,8 @@
       "jogadorTeam": "barcelona",
       "tipoEstatistica": "gamesPlayed",
       "valor": 2,
-      "data": "2026-05-04",
-      "id": "wmOSyB3P-qM"
+      "data": "2026-05-03",
+      "id": "mIMoMQjP9mA"
     },
     {
       "jogadorId": "Dk5rxJ3F21s",
@@ -9345,8 +9346,8 @@
       "jogadorTeam": "barcelona",
       "tipoEstatistica": "goals",
       "valor": 4,
-      "data": "2026-05-04",
-      "id": "1nzK5esu6es"
+      "data": "2026-05-03",
+      "id": "roLrtFySs8M"
     },
     {
       "jogadorId": "Dk5rxJ3F21s",
@@ -9355,8 +9356,29 @@
       "jogadorTeam": "barcelona",
       "tipoEstatistica": "assists",
       "valor": 1,
+      "data": "2026-05-03",
+      "id": "sl4P6CgTyds"
+    },
+    {
+      "jogadorId": "SF-840451",
+      "jogador": "Luiz Araújo",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840451/image",
+      "jogadorTeam": "Palmeiras",
+      "tipoEstatistica": "goals",
+      "valor": -1,
       "data": "2026-05-04",
-      "id": "88G2B6q5LaY"
+      "tipo": "ajuste",
+      "id": "By05WRsupT8"
+    },
+    {
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogador": "coelho",
+      "jogadorImg": "",
+      "jogadorTeam": "barcelona",
+      "tipoEstatistica": "tackles",
+      "valor": 3,
+      "data": "2026-05-04",
+      "id": "jYsM98e4mOM"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
