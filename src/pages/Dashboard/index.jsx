@@ -11,6 +11,7 @@ import AdminPage from '../Admin/index.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useDispatch } from 'react-redux';
 import { atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
+import { ajustarStatAtleta } from '../../store/estatisticasSlice';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import './Dashboard.css';
 
@@ -105,6 +106,34 @@ const Dashboard = ({ page, onNavigate }) => {
     setEditPlayer(null);
   };
 
+  const handleStatEdit = async (player, statKey, valorNovo, valorAntigo) => {
+    try {
+      await dispatch(ajustarStatAtleta({
+        jogadorId: player.id,
+        jogador: player.name,
+        jogadorImg: player.profileImageURL,
+        jogadorTeam: player.team,
+        statKey,
+        valorNovo,
+        valorAntigo
+      })).unwrap();
+      
+      // Update local state to immediately reflect in the modal without needing to close/re-open
+      setModalPlayer(prev => {
+        if (!prev || prev.id !== player.id) return prev;
+        return {
+          ...prev,
+          statistics: {
+            ...(prev.statistics || {}),
+            [statKey]: Number(valorNovo)
+          }
+        };
+      });
+    } catch (err) {
+      console.error('Erro ao ajustar estatística inline:', err);
+    }
+  };
+
   const handleNavigate = (target) => {
     onNavigate(target);
     setSidebarOpen(false);
@@ -133,6 +162,8 @@ const Dashboard = ({ page, onNavigate }) => {
         onClose={() => setModalPlayer(null)}
         onEdit={handleEditPlayer}
         onDelete={handleDeletePlayer}
+        isAdmin={role === 'admin'}
+        onStatEdit={handleStatEdit}
       />
 
       {/* Modal de Edição */}

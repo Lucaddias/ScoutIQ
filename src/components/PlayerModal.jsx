@@ -68,13 +68,71 @@ function RadarChart({ stats, color }) {
 }
 
 /* ── Stat Bar ── */
-function StatBar({ label, value, max, unit, color }) {
+function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit }) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState(value);
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  // Sync editValue when value prop changes (e.g. after save)
+  React.useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
   const pct = Math.min((value / max) * 100, 100);
+
+  const handleSave = async () => {
+    if (Number(editValue) === Number(value)) {
+      setIsEditing(false);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onStatEdit(statKey, editValue, value);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Erro ao salvar ajuste de stat:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="modal-stat-bar">
       <div className="msb-header">
         <span className="msb-label">{label}</span>
-        <span className="msb-value">{value}{unit && <small> {unit}</small>}</span>
+        <div className="msb-value-wrap">
+          {isEditing ? (
+            <div className="msb-edit-controls">
+              <input
+                type="number"
+                className="msb-edit-input"
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                min="0"
+                step="any"
+                disabled={isSaving}
+                autoFocus
+              />
+              {isSaving ? (
+                <span className="msb-saving-text"><i className="fa-solid fa-spinner fa-spin"></i></span>
+              ) : (
+                <>
+                  <button className="msb-save-btn" onClick={handleSave}><i className="fa-solid fa-check"></i></button>
+                  <button className="msb-cancel-btn" onClick={() => { setIsEditing(false); setEditValue(value); }}><i className="fa-solid fa-xmark"></i></button>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <span className="msb-value">{value}{unit && <small> {unit}</small>}</span>
+              {isAdmin && onStatEdit && (
+                <button className="msb-edit-btn" onClick={() => setIsEditing(true)} title={`Editar ${label}`}>
+                  <i className="fa-solid fa-pen"></i>
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
       <div className="msb-track">
         <div className="msb-fill" style={{ width: `${pct}%`, background: color }} />
@@ -83,7 +141,7 @@ function StatBar({ label, value, max, unit, color }) {
   );
 }
 
-export default function PlayerModal({ player, onClose, onEdit, onDelete }) {
+export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin, onStatEdit }) {
   if (!player) return null;
 
   const s = player.statistics || {};
@@ -172,14 +230,14 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete }) {
 
           <div className="modal-bars-wrap">
             <h4>Estatísticas Detalhadas</h4>
-            <StatBar label="Gols" value={s.goals ?? 0} max={20} color="#f59e0b" />
-            <StatBar label="Assistências" value={s.assists ?? 0} max={15} color="#14b8a6" />
-            <StatBar label="Precisão de Passe" value={passAcc} max={100} unit="%" color="#3b82f6" />
-            <StatBar label="Tackles" value={s.tackles ?? 0} max={250} color="#8b5cf6" />
-            <StatBar label="Interceptações" value={s.interceptions ?? 0} max={100} color="#ec4899" />
-            <StatBar label="Distância" value={distKm.toFixed(1)} max={300} unit="km" color="#06b6d4" />
-            <StatBar label="Cartões Amarelos" value={s.yellowCards ?? 0} max={15} color="#eab308" />
-            <StatBar label="Cartões Vermelhos" value={s.redCards ?? 0} max={5} color="#ef4444" />
+            <StatBar label="Gols" statKey="goals" value={s.goals ?? 0} max={20} color="#f59e0b" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Assistências" statKey="assists" value={s.assists ?? 0} max={15} color="#14b8a6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Precisão de Passe" statKey="passAcc" value={passAcc} max={100} unit="%" color="#3b82f6" /> {/* Not directly editable since it's derived */}
+            <StatBar label="Tackles" statKey="tackles" value={s.tackles ?? 0} max={250} color="#8b5cf6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Interceptações" statKey="interceptions" value={s.interceptions ?? 0} max={100} color="#ec4899" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Distância" statKey="distanceCoveredKm" value={distKm.toFixed(1)} max={300} unit="km" color="#06b6d4" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Cartões Amarelos" statKey="yellowCards" value={s.yellowCards ?? 0} max={15} color="#eab308" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Cartões Vermelhos" statKey="redCards" value={s.redCards ?? 0} max={5} color="#ef4444" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
           </div>
         </div>
       </div>

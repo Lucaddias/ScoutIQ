@@ -22,9 +22,9 @@
       "profileImageURL": "https://api.sofascore.com/api/v1/player/840451/image",
       "statistics": {
         "gamesPlayed": 9,
-        "goals": 1,
-        "assists": 3,
-        "totalPasses": 435,
+        "goals": 22,
+        "assists": 14,
+        "totalPasses": 455,
         "accuratePasses": 335,
         "tackles": 32,
         "interceptions": 16,
@@ -9014,7 +9014,9 @@
       "stats": {},
       "id": "Dk5rxJ3F21s",
       "statistics": {
-        "goals": 2
+        "goals": 6,
+        "gamesPlayed": 2,
+        "assists": 1
       }
     },
     {
@@ -9284,6 +9286,77 @@
       "valor": 1,
       "data": "2026-05-03",
       "id": "cLRpQgYVwTA"
+    },
+    {
+      "jogadorId": "SF-840451",
+      "jogador": "Luiz Araújo",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840451/image",
+      "jogadorTeam": "Palmeiras",
+      "tipoEstatistica": "goals",
+      "valor": 22,
+      "data": "2026-05-04",
+      "id": "20NoZWVb9-Y"
+    },
+    {
+      "jogadorId": "SF-840451",
+      "jogador": "Luiz Araújo",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840451/image",
+      "jogadorTeam": "Palmeiras",
+      "tipoEstatistica": "assists",
+      "valor": 11,
+      "data": "2026-05-04",
+      "id": "pU65ZFa1N44"
+    },
+    {
+      "jogadorId": "SF-840451",
+      "jogador": "Luiz Araújo",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840451/image",
+      "jogadorTeam": "Palmeiras",
+      "tipoEstatistica": "totalPasses",
+      "valor": 20,
+      "data": "2026-05-04",
+      "id": "cfQtyRqzV3M"
+    },
+    {
+      "jogadorId": "SF-840451",
+      "jogador": "Luiz Araújo",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840451/image",
+      "jogadorTeam": "Palmeiras",
+      "tipoEstatistica": "goals",
+      "valor": -1,
+      "data": "2026-05-04",
+      "tipo": "ajuste",
+      "id": "2Rpd6rvRJXs"
+    },
+    {
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogador": "coelho",
+      "jogadorImg": "",
+      "jogadorTeam": "barcelona",
+      "tipoEstatistica": "gamesPlayed",
+      "valor": 2,
+      "data": "2026-05-04",
+      "id": "wmOSyB3P-qM"
+    },
+    {
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogador": "coelho",
+      "jogadorImg": "",
+      "jogadorTeam": "barcelona",
+      "tipoEstatistica": "goals",
+      "valor": 4,
+      "data": "2026-05-04",
+      "id": "1nzK5esu6es"
+    },
+    {
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogador": "coelho",
+      "jogadorImg": "",
+      "jogadorTeam": "barcelona",
+      "tipoEstatistica": "assists",
+      "valor": 1,
+      "data": "2026-05-04",
+      "id": "88G2B6q5LaY"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

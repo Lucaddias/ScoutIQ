@@ -6,6 +6,7 @@ import {
   fetchEstatisticas,
   selectAllEstatisticas,
   criarEstatistica,
+  criarEstatisticasEmLote,
   atualizarEstatistica,
   deletarEstatistica,
 } from '../../store/estatisticasSlice';
@@ -72,6 +73,7 @@ export default function Estatisticas({ onPlayerClick }) {
   /* ─── Modal State ─── */
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     jogadorId: '',
     jogador: '',
@@ -81,6 +83,12 @@ export default function Estatisticas({ onPlayerClick }) {
     valor: '',
     data: new Date().toISOString().split('T')[0],
   });
+
+  /* ─── Bulk Entries State (modo criação) ─── */
+  const [bulkEntries, setBulkEntries] = useState([
+    { tipoEstatistica: statKeys[0] || '', valor: '' },
+  ]);
+  const [bulkData, setBulkData] = useState(new Date().toISOString().split('T')[0]);
 
   /* ─── Player Search State ─── */
   const [playerSearch, setPlayerSearch] = useState('');
@@ -176,8 +184,11 @@ export default function Estatisticas({ onPlayerClick }) {
       valor: '',
       data: new Date().toISOString().split('T')[0],
     });
+    setBulkEntries([{ tipoEstatistica: statKeys[0] || '', valor: '' }]);
+    setBulkData(new Date().toISOString().split('T')[0]);
     setPlayerSearch('');
     setPlayerDropdownOpen(false);
+    setSaving(false);
     setModalOpen(true);
   };
 
@@ -202,6 +213,7 @@ export default function Estatisticas({ onPlayerClick }) {
     setEditingRecord(null);
     setPlayerSearch('');
     setPlayerDropdownOpen(false);
+    setSaving(false);
   };
 
   /* Seleciona um jogador do dropdown */
@@ -221,7 +233,20 @@ export default function Estatisticas({ onPlayerClick }) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  /* ─── Bulk Entry Handlers ─── */
+  const addBulkEntry = () => {
+    setBulkEntries(prev => [...prev, { tipoEstatistica: statKeys[0] || '', valor: '' }]);
+  };
+
+  const removeBulkEntry = (idx) => {
+    setBulkEntries(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateBulkEntry = (idx, field, value) => {
+    setBulkEntries(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     /* Valida que um jogador foi selecionado do dropdown */
     if (!formData.jogadorId) {
@@ -229,29 +254,41 @@ export default function Estatisticas({ onPlayerClick }) {
       return;
     }
 
-    const registro = {
-      ...formData,
-      valor: Number(formData.valor),
-    };
+    setSaving(true);
 
-    if (editingRecord) {
-      /*
-       * UPDATE — envia PUT para /estatisticas/{id} e PATCH para /athletes/{id}.
-       * Passa o valor/tipo/jogador anterior para o thunk calcular o delta correto.
-       */
-      dispatch(atualizarEstatistica({
-        registro: { ...registro, id: editingRecord.id },
-        valorAnterior: editingRecord.valor,
-        tipoAnterior: editingRecord.tipoEstatistica,
-        jogadorIdAnterior: editingRecord.jogadorId,
-      }));
-    } else {
-      /*
-       * CREATE — POST para /estatisticas + PATCH para /athletes/{id}.
-       * O json-server gera o ID automaticamente.
-       */
-      dispatch(criarEstatistica(registro));
+    try {
+      if (editingRecord) {
+        /* UPDATE — modo single (igual antes) */
+        const registro = { ...formData, valor: Number(formData.valor) };
+        await dispatch(atualizarEstatistica({
+          registro: { ...registro, id: editingRecord.id },
+          valorAnterior: editingRecord.valor,
+          tipoAnterior: editingRecord.tipoEstatistica,
+          jogadorIdAnterior: editingRecord.jogadorId,
+        })).unwrap();
+      } else {
+        /* CREATE — modo bulk */
+        const validEntries = bulkEntries.filter(e => e.valor && Number(e.valor) > 0);
+        if (validEntries.length === 0) {
+          setSaving(false);
+          return;
+        }
+        await dispatch(criarEstatisticasEmLote({
+          jogadorData: {
+            jogadorId: formData.jogadorId,
+            jogador: formData.jogador,
+            jogadorImg: formData.jogadorImg,
+            jogadorTeam: formData.jogadorTeam,
+          },
+          entries: validEntries,
+          data: bulkData,
+        })).unwrap();
+      }
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
     }
+
+    setSaving(false);
     closeModal();
   };
 
@@ -619,53 +656,134 @@ export default function Estatisticas({ onPlayerClick }) {
                 />
               </div>
 
-              <div className="crud-field">
-                <label htmlFor="campo-tipo-estatistica">Tipo de Estatística</label>
-                <select
-                  id="campo-tipo-estatistica"
-                  required
-                  value={formData.tipoEstatistica}
-                  onChange={e => handleFormChange('tipoEstatistica', e.target.value)}
-                >
-                  {statKeys.map(key => (
-                    <option key={key} value={key}>
-                      {STAT_LABELS[key] || key}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* ─── Modo EDIÇÃO: campos single (como antes) ─── */}
+              {editingRecord ? (
+                <>
+                  <div className="crud-field">
+                    <label htmlFor="campo-tipo-estatistica">Tipo de Estatística</label>
+                    <select
+                      id="campo-tipo-estatistica"
+                      required
+                      value={formData.tipoEstatistica}
+                      onChange={e => handleFormChange('tipoEstatistica', e.target.value)}
+                    >
+                      {statKeys.map(key => (
+                        <option key={key} value={key}>
+                          {STAT_LABELS[key] || key}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="crud-field">
-                <label htmlFor="campo-valor">Valor</label>
-                <input
-                  id="campo-valor"
-                  type="number"
-                  required
-                  min="0"
-                  step="any"
-                  placeholder="Ex: 12"
-                  value={formData.valor}
-                  onChange={e => handleFormChange('valor', e.target.value)}
-                />
-              </div>
+                  <div className="crud-field">
+                    <label htmlFor="campo-valor">Valor</label>
+                    <input
+                      id="campo-valor"
+                      type="number"
+                      required
+                      min="0"
+                      step="any"
+                      placeholder="Ex: 12"
+                      value={formData.valor}
+                      onChange={e => handleFormChange('valor', e.target.value)}
+                    />
+                  </div>
 
-              <div className="crud-field">
-                <label htmlFor="campo-data">Data</label>
-                <input
-                  id="campo-data"
-                  type="date"
-                  required
-                  value={formData.data}
-                  onChange={e => handleFormChange('data', e.target.value)}
-                />
-              </div>
+                  <div className="crud-field">
+                    <label htmlFor="campo-data">Data</label>
+                    <input
+                      id="campo-data"
+                      type="date"
+                      required
+                      value={formData.data}
+                      onChange={e => handleFormChange('data', e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : (
+                /* ─── Modo CRIAÇÃO: formulário dinâmico em lote ─── */
+                <>
+                  <div className="bulk-entries-section">
+                    <label className="bulk-section-label">
+                      <i className="fa-solid fa-layer-group"></i>
+                      Estatísticas ({bulkEntries.length})
+                    </label>
+
+                    {bulkEntries.map((entry, idx) => (
+                      <div className="bulk-entry-row" key={idx}>
+                        <select
+                          value={entry.tipoEstatistica}
+                          onChange={e => updateBulkEntry(idx, 'tipoEstatistica', e.target.value)}
+                          className="bulk-select"
+                        >
+                          {statKeys.map(key => (
+                            <option key={key} value={key}>
+                              {STAT_LABELS[key] || key}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="Valor"
+                          value={entry.valor}
+                          onChange={e => updateBulkEntry(idx, 'valor', e.target.value)}
+                          className="bulk-input"
+                          required
+                        />
+                        {bulkEntries.length > 1 && (
+                          <button
+                            type="button"
+                            className="bulk-remove-btn"
+                            onClick={() => removeBulkEntry(idx)}
+                            title="Remover linha"
+                          >
+                            <i className="fa-solid fa-trash-can"></i>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    <button type="button" className="bulk-add-btn" onClick={addBulkEntry}>
+                      <i className="fa-solid fa-plus"></i>
+                      Adicionar outra estatística
+                    </button>
+                  </div>
+
+                  <div className="crud-field">
+                    <label htmlFor="campo-data-bulk">Data</label>
+                    <input
+                      id="campo-data-bulk"
+                      type="date"
+                      required
+                      value={bulkData}
+                      onChange={e => setBulkData(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="crud-modal-actions">
-                <button type="submit" className="crud-btn crud-btn-save">
-                  <i className="fa-solid fa-check"></i>
-                  {editingRecord ? 'Salvar Alterações' : 'Adicionar'}
+                <button type="submit" className="crud-btn crud-btn-save" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin"></i>
+                      Salvando...
+                    </>
+                  ) : editingRecord ? (
+                    <>
+                      <i className="fa-solid fa-check"></i>
+                      Salvar Alterações
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-paper-plane"></i>
+                      Enviar Tudo ({bulkEntries.length})
+                    </>
+                  )}
                 </button>
-                <button type="button" className="crud-btn crud-btn-cancel" onClick={closeModal}>
+                <button type="button" className="crud-btn crud-btn-cancel" onClick={closeModal} disabled={saving}>
                   Cancelar
                 </button>
               </div>

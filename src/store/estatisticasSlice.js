@@ -85,6 +85,62 @@ export const criarEstatistica = createAsyncThunk(
 );
 
 /*
+ * BULK CREATE — cria múltiplos registros para o mesmo jogador de uma vez.
+ * Otimiza o PATCH: acumula todos os deltas por tipo de stat e aplica um único PATCH.
+ * Retorna o array de todos os registros criados.
+ */
+export const criarEstatisticasEmLote = createAsyncThunk(
+  'estatisticas/criarEmLote',
+  async ({ jogadorData, entries, data }, { dispatch }) => {
+    const created = [];
+
+    // 1. POST individual para cada entrada na coleção estatisticas
+    for (const entry of entries) {
+      const registro = {
+        jogadorId: jogadorData.jogadorId,
+        jogador: jogadorData.jogador,
+        jogadorImg: jogadorData.jogadorImg,
+        jogadorTeam: jogadorData.jogadorTeam,
+        tipoEstatistica: entry.tipoEstatistica,
+        valor: Number(entry.valor),
+        data,
+      };
+      const res = await fetch(STATS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registro),
+      });
+      if (!res.ok) throw new Error('Erro ao criar estatística em lote');
+      created.push(await res.json());
+    }
+
+    // 2. Acumula deltas por tipo de stat para um único PATCH otimizado
+    const deltaMap = {};
+    for (const entry of entries) {
+      const key = entry.tipoEstatistica;
+      deltaMap[key] = (deltaMap[key] || 0) + Number(entry.valor);
+    }
+
+    // 3. Aplica PATCH único no atleta com todos os deltas
+    const atleta = await fetchAtleta(jogadorData.jogadorId);
+    const stats = { ...(atleta.statistics || {}) };
+    for (const [key, delta] of Object.entries(deltaMap)) {
+      stats[key] = Math.max(0, (Number(stats[key]) || 0) + delta);
+    }
+    await fetch(`${ATHLETES_URL}/${jogadorData.jogadorId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statistics: stats }),
+    });
+
+    // 4. Re-busca atletas
+    dispatch(fetchAtletas());
+
+    return created;
+  }
+);
+
+/*
  * UPDATE — atualiza o registro E ajusta o delta no atleta.
  * Calcula a diferença entre o valor novo e o antigo para aplicar corretamente.
  */
@@ -145,6 +201,51 @@ export const deletarEstatistica = createAsyncThunk(
   }
 );
 
+/*
+ * AJUSTE DIRETO — permite editar uma stat do atleta diretamente pelo perfil.
+ * Faz PATCH com o valor absoluto e cria um registro de auditoria em estatisticas.
+ */
+export const ajustarStatAtleta = createAsyncThunk(
+  'estatisticas/ajustarStat',
+  async ({ jogadorId, jogador, jogadorImg, jogadorTeam, statKey, valorNovo, valorAntigo }, { dispatch }) => {
+    const delta = Number(valorNovo) - Number(valorAntigo);
+    if (delta === 0) return null;
+
+    // 1. PATCH direto no atleta com o novo valor absoluto
+    const atleta = await fetchAtleta(jogadorId);
+    const stats = { ...(atleta.statistics || {}) };
+    stats[statKey] = Math.max(0, Number(valorNovo));
+    await fetch(`${ATHLETES_URL}/${jogadorId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statistics: stats }),
+    });
+
+    // 2. Cria registro de auditoria em estatisticas
+    const auditRecord = {
+      jogadorId,
+      jogador,
+      jogadorImg: jogadorImg || '',
+      jogadorTeam: jogadorTeam || '',
+      tipoEstatistica: statKey,
+      valor: delta,
+      data: new Date().toISOString().split('T')[0],
+      tipo: 'ajuste',
+    };
+    const res = await fetch(STATS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(auditRecord),
+    });
+    const created = await res.json();
+
+    // 3. Re-busca atletas
+    dispatch(fetchAtletas());
+
+    return created;
+  }
+);
+
 // ──────────────────────────────────────────────────
 // ENTITY ADAPTER + SLICE
 // ──────────────────────────────────────────────────
@@ -179,6 +280,19 @@ export const estatisticasSlice = createSlice({
         estatisticasAdapter.addOne(state, action.payload);
       })
 
+      // --- BULK CREATE ---
+      .addCase(criarEstatisticasEmLote.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(criarEstatisticasEmLote.fulfilled, (state, action) => {
+        state.loading = false;
+        estatisticasAdapter.addMany(state, action.payload);
+      })
+      .addCase(criarEstatisticasEmLote.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+
       // --- UPDATE ---
       .addCase(atualizarEstatistica.fulfilled, (state, action) => {
         estatisticasAdapter.updateOne(state, {
@@ -190,6 +304,13 @@ export const estatisticasSlice = createSlice({
       // --- DELETE ---
       .addCase(deletarEstatistica.fulfilled, (state, action) => {
         estatisticasAdapter.removeOne(state, action.payload);
+      })
+
+      // --- AJUSTE DIRETO ---
+      .addCase(ajustarStatAtleta.fulfilled, (state, action) => {
+        if (action.payload) {
+          estatisticasAdapter.addOne(state, action.payload);
+        }
       });
   },
 });
