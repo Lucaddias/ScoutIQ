@@ -205,7 +205,7 @@
       "profileImageURL": "https://api.sofascore.com/api/v1/player/840219/image",
       "statistics": {
         "gamesPlayed": 20,
-        "goals": 12,
+        "goals": 13,
         "assists": 3,
         "totalPasses": 505,
         "accuratePasses": 449,
@@ -5483,7 +5483,7 @@
       "profileImageURL": "https://api.sofascore.com/api/v1/player/1191278/image",
       "statistics": {
         "gamesPlayed": 33,
-        "goals": 1,
+        "goals": 2,
         "assists": 1,
         "totalPasses": 1822,
         "accuratePasses": 1625,
@@ -9012,7 +9012,10 @@
       "marketValue": 10000,
       "monthlySalary": 1,
       "stats": {},
-      "id": "Dk5rxJ3F21s"
+      "id": "Dk5rxJ3F21s",
+      "statistics": {
+        "goals": 2
+      }
     },
     {
       "name": "ronilson",
@@ -9250,5 +9253,38 @@
       "clausula": 0,
       "observacoes": "Merece muito dinheiro, jogador excelente, nível messi."
     }
-  ]
+  ],
+  "estatisticas": [
+    {
+      "jogadorId": "SF-1191278",
+      "jogador": "Robert Renan",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/1191278/image",
+      "jogadorTeam": "Vasco da Gama",
+      "tipoEstatistica": "goals",
+      "valor": 1,
+      "data": "2026-05-03",
+      "id": "GQOFy9RVaaM"
+    },
+    {
+      "jogadorId": "Dk5rxJ3F21s",
+      "jogador": "coelho",
+      "jogadorImg": "",
+      "jogadorTeam": "barcelona",
+      "tipoEstatistica": "goals",
+      "valor": 2,
+      "data": "2026-05-04",
+      "id": "9TkLdQKFKrU"
+    },
+    {
+      "jogadorId": "SF-840219",
+      "jogador": "Pedro",
+      "jogadorImg": "https://api.sofascore.com/api/v1/player/840219/image",
+      "jogadorTeam": "Flamengo",
+      "tipoEstatistica": "goals",
+      "valor": 1,
+      "data": "2026-05-03",
+      "id": "cLRpQgYVwTA"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }

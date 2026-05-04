@@ -61,12 +61,10 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
  const loading = useSelector((state) => state.atletas.loading);
   const dispatch = useDispatch();
 
-  // O GATILHO INICIAL: Busca os dados no JSON assim que a tela abre
+  // O GATILHO INICIAL: Busca dados frescos do JSON Server sempre que a tela abre
   useEffect(() => {
-    if (jogadoresDoBanco.length === 0) {
-      dispatch(fetchAtletas());
-    }
-  }, [dispatch, jogadoresDoBanco.length]);
+    dispatch(fetchAtletas());
+  }, [dispatch]);
 
   // Os dados crus do Redux são enriquecidos com o score calculado antes de serem usados
   const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);

@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import atletasReducer from './atletasSlice';
 import apoioReducer from './apoioSlice'; // <-- Nova importação
+import estatisticasReducer from './estatisticasSlice';
 
 /*
  * STORE GLOBAL (Redux)
@@ -8,7 +9,8 @@ import apoioReducer from './apoioSlice'; // <-- Nova importação
  */
 export const store = configureStore({
   reducer: {
-    atletas: atletasReducer, // Cuida do CRUD e do EntityAdapter dos jogadores
-    apoio: apoioReducer,     // Cuida da matemática dos cenários e do relatório
+    atletas: atletasReducer,           // Cuida do CRUD e do EntityAdapter dos jogadores
+    apoio: apoioReducer,               // Cuida da matemática dos cenários e do relatório
+    estatisticas: estatisticasReducer,  // Cuida dos registros de estatísticas com persistência
   },
 });
