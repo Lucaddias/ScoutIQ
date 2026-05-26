@@ -1,8 +1,26 @@
+/**
+ * Configuração e inicialização do cliente Supabase para persistência e autenticação.
+ * @module lib/supabase
+ */
+
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * URL do projeto Supabase obtida das variáveis de ambiente.
+ * @type {string|undefined}
+ */
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+/**
+ * Chave pública anônima do Supabase obtida das variáveis de ambiente.
+ * @type {string|undefined}
+ */
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+/**
+ * Validação auxiliar para detectar se as chaves são placeholders padrão.
+ * @type {boolean}
+ */
 const looksLikePlaceholderKey =
   !supabaseAnonKey ||
   supabaseAnonKey === 'YOUR_SUPABASE_ANON_PUBLIC_KEY' ||
@@ -26,4 +44,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+/**
+ * Instância cliente configurada do Supabase para realizar requisições de banco de dados e Auth.
+ * @type {Object}
+ */
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+

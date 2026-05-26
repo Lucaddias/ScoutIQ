@@ -1,19 +1,40 @@
 /**
- * Scenario Generation Algorithm
- *
- * Given the full player pool (already enriched with .score),
- * generates 3 distinct "purchase packages" that respect:
- *   - orcamento (total transfer budget)
- *   - tetoSalarial (monthly salary cap for all new signings combined)
- *   - vagas (number of slots to fill)
- *   - prioridades: { Forward, Midfielder, Defender, Goalkeeper } => "Alta (3)" | "Média (2)" | "Baixa (1)"
- *
- * Rules:
- *   - Max 1 goalkeeper regardless of vagas or priority
- *   - Higher-priority positions get proportionally more slots
- *   - If a position has Alta priority, it WILL be represented in results
+ * Algoritmo de Geração de Cenários de Compra de Jogadores.
+ * @module utils/algorithm
  */
 
+/**
+ * Representa um jogador com sua pontuação calculada.
+ * @typedef {Object} Player
+ * @property {string|number} id - Identificador exclusivo do jogador.
+ * @property {string} name - Nome completo do jogador.
+ * @property {string} position - Posição do jogador ('Forward', 'Midfielder', 'Defender', 'Goalkeeper').
+ * @property {number} marketValue - Valor de mercado em BRL.
+ * @property {number} monthlySalary - Salário mensal do jogador em BRL.
+ * @property {number} score - Pontuação geral de desempenho (0-100).
+ */
+
+/**
+ * Representa uma vaga a ser preenchida.
+ * @typedef {Object} Vaga
+ * @property {string} dbPos - Posição a ser preenchida ('Forward', 'Midfielder', 'Defender', 'Goalkeeper').
+ * @property {number} prio - Prioridade da vaga (1: Baixa, 2: Média, 3: Alta).
+ */
+
+/**
+ * Gera 3 cenários distintos de pacotes de compra que respeitam as restrições orçamentárias, salariais, número de vagas e prioridades.
+ *
+ * - Cenário 1 (Foco Técnico): Maximiza o score absoluto acumulado dos jogadores selecionados.
+ * - Cenário 2 (Custo-Benefício): Prioriza jogadores com melhor relação Score por Milhão gasto.
+ * - Cenário 3 (Foco Financeiro/Investimento): Minimiza a despesa total (Preço + 12 meses de Salário) mantendo um patamar técnico mínimo (score >= floor).
+ *
+ * @param {Player[]} players - Lista completa de atletas elegíveis (já calculados com .score).
+ * @param {Object} config - Configurações financeiras e vagas.
+ * @param {number} config.orcamento - Orçamento máximo total de transferências.
+ * @param {number} config.tetoSalarial - Teto salarial máximo mensal combinado para todas as contratações.
+ * @param {Vaga[]} config.vagasArray - Array descrevendo as vagas configuradas e suas prioridades.
+ * @returns {{cenario1: Player[], cenario2: Player[], cenario3: Player[]}} Objeto contendo os três cenários recomendados.
+ */
 export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) {
   // vagasArray: [{ dbPos: 'Forward', prio: 3 }, { dbPos: 'Midfielder', prio: 1 }]
   const elegivel = players.filter(
@@ -26,6 +47,16 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
     if (slots[v.dbPos] !== undefined) slots[v.dbPos]++;
   });
 
+  /**
+   * Função interna auxiliar para selecionar jogadores preenchendo as vagas por posição de acordo com uma função de classificação (ranking).
+   *
+   * @param {Player[]} pool - Lista de jogadores disponíveis para escolha.
+   * @param {Object.<string, number>} slotsObj - Mapeamento com a quantidade de vagas por posição.
+   * @param {number} maxOrcamento - Orçamento remanescente para o cenário.
+   * @param {number} maxTeto - Teto salarial mensal remanescente para o cenário.
+   * @param {function(Player): number} rankFn - Função que define a métrica a ser maximizada (ou minimizada, se valor negativo).
+   * @returns {Player[]} Lista de jogadores selecionados para o cenário.
+   */
   function pickBySlots(pool, slotsObj, maxOrcamento, maxTeto, rankFn) {
     const result = [];
     let usedBudget = 0;
@@ -62,3 +93,4 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
 
   return { cenario1, cenario2, cenario3 };
 }
+

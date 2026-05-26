@@ -1,28 +1,55 @@
+/**
+ * Slice do Redux para controle de Estatísticas de Jogadores.
+ * Gerencia a inserção, edição e exclusão de eventos estatísticos (ex: desarmes, gols)
+ * e atualiza o acumulado na entidade Atletas correspondente (dupla escrita).
+ * @module store/estatisticasSlice
+ */
+
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import { fetchAtletas } from './atletasSlice';
 
-/*
- * ESTATÍSTICAS SLICE
- * Gerencia o CRUD de registros de estatísticas individuais (ex: "Robert Renan +1 Gol")
- * e faz a sincronização cruzada com a tabela de atletas (dupla escrita).
- *
- * Endpoints:
- *   /estatisticas  → registros de eventos estatísticos
- *   /athletes/{id} → atualização do acumulado do atleta
+/**
+ * Endereço base da API.
+ * @type {string}
+ * @constant
  */
-
 const API_BASE = 'http://localhost:3001';
+
+/**
+ * URL da coleção de estatísticas.
+ * @type {string}
+ * @constant
+ */
 const STATS_URL = `${API_BASE}/estatisticas`;
+
+/**
+ * URL da coleção de atletas.
+ * @type {string}
+ * @constant
+ */
 const ATHLETES_URL = `${API_BASE}/athletes`;
 
-/* ─── Helper: busca o atleta atual da API ─── */
+/**
+ * Helper interno para buscar um atleta individual por ID no servidor.
+ *
+ * @param {string|number} id - ID do atleta a ser buscado.
+ * @returns {Promise<Object>} Dados do atleta retornado pela API.
+ */
 const fetchAtleta = async (id) => {
   const res = await fetch(`${ATHLETES_URL}/${id}`);
   if (!res.ok) throw new Error(`Atleta ${id} não encontrado`);
   return res.json();
 };
 
-/* ─── Helper: faz PATCH nas statistics do atleta ─── */
+/**
+ * Helper interno para atualizar as estatísticas de um atleta aplicando um delta (soma/subtração).
+ * Garante que o valor acumulado nunca fique negativo.
+ *
+ * @param {string|number} jogadorId - ID do jogador.
+ * @param {string} statKey - Chave da estatística (ex: 'goals', 'assists').
+ * @param {number} delta - Valor a ser incrementado (ou decrementado, se negativo).
+ * @returns {Promise<Object>} Dados atualizados do atleta.
+ */
 const patchAtletaStat = async (jogadorId, statKey, delta) => {
   const atleta = await fetchAtleta(jogadorId);
   const stats = atleta.statistics || {};
@@ -43,8 +70,10 @@ const patchAtletaStat = async (jogadorId, statKey, delta) => {
 // THUNKS ASSÍNCRONOS
 // ──────────────────────────────────────────────────
 
-/*
- * READ — busca todos os registros de estatísticas do json-server.
+/**
+ * Thunk assíncrono para buscar todos os registros de estatísticas individuais do json-server.
+ *
+ * @type {Function}
  */
 export const fetchEstatisticas = createAsyncThunk(
   'estatisticas/fetchAll',
@@ -55,12 +84,11 @@ export const fetchEstatisticas = createAsyncThunk(
   }
 );
 
-/*
- * CREATE — persiste o registro E incrementa a stat no atleta.
- * Fluxo:
- *   1. POST /estatisticas          → salva o registro
- *   2. PATCH /athletes/{id}        → soma o valor ao acumulado
- *   3. dispatch(fetchAtletas())    → refresca o Redux dos atletas
+/**
+ * Thunk assíncrono para salvar um novo evento estatístico e atualizar o total no perfil do atleta (dupla escrita).
+ * Recarrega a lista de atletas do Redux ao finalizar.
+ *
+ * @type {Function}
  */
 export const criarEstatistica = createAsyncThunk(
   'estatisticas/criar',
@@ -84,10 +112,11 @@ export const criarEstatistica = createAsyncThunk(
   }
 );
 
-/*
- * BULK CREATE — cria múltiplos registros para o mesmo jogador de uma vez.
- * Otimiza o PATCH: acumula todos os deltas por tipo de stat e aplica um único PATCH.
- * Retorna o array de todos os registros criados.
+/**
+ * Thunk assíncrono para salvar múltiplos registros de estatísticas para o mesmo atleta em lote (Bulk Create).
+ * Agrupa os deltas das estatísticas para realizar uma única chamada PATCH otimizada ao atleta.
+ *
+ * @type {Function}
  */
 export const criarEstatisticasEmLote = createAsyncThunk(
   'estatisticas/criarEmLote',
@@ -140,9 +169,11 @@ export const criarEstatisticasEmLote = createAsyncThunk(
   }
 );
 
-/*
- * UPDATE — atualiza o registro E ajusta o delta no atleta.
- * Calcula a diferença entre o valor novo e o antigo para aplicar corretamente.
+/**
+ * Thunk assíncrono para atualizar um registro estatístico existente.
+ * Trata o delta gerado se houver alteração de tipo, valor ou jogador para evitar inconsistência de dados.
+ *
+ * @type {Function}
  */
 export const atualizarEstatistica = createAsyncThunk(
   'estatisticas/atualizar',
@@ -179,8 +210,10 @@ export const atualizarEstatistica = createAsyncThunk(
   }
 );
 
-/*
- * DELETE — remove o registro E decrementa a stat do atleta.
+/**
+ * Thunk assíncrono para excluir uma estatística individual, decrementando o valor correspondente no atleta.
+ *
+ * @type {Function}
  */
 export const deletarEstatistica = createAsyncThunk(
   'estatisticas/deletar',
@@ -201,15 +234,18 @@ export const deletarEstatistica = createAsyncThunk(
   }
 );
 
-/*
- * AJUSTE DIRETO — permite editar uma stat do atleta diretamente pelo perfil.
- * Faz PATCH com o valor absoluto e cria um registro de auditoria em estatisticas.
+/**
+ * Thunk assíncrono para ajustar diretamente uma estatística específica de um atleta.
+ * Registra um evento especial de auditoria na coleção de estatísticas e atualiza o atleta.
+ *
+ * @type {Function}
  */
 export const ajustarStatAtleta = createAsyncThunk(
   'estatisticas/ajustarStat',
   async ({ jogadorId, jogador, jogadorImg, jogadorTeam, statKey, valorNovo, valorAntigo }, { dispatch }) => {
     const delta = Number(valorNovo) - Number(valorAntigo);
     if (delta === 0) return null;
+
 
     // 1. PATCH direto no atleta com o novo valor absoluto
     const atleta = await fetchAtleta(jogadorId);
@@ -250,8 +286,14 @@ export const ajustarStatAtleta = createAsyncThunk(
 // ENTITY ADAPTER + SLICE
 // ──────────────────────────────────────────────────
 
+/**
+ * Adaptador de entidade do Redux Toolkit para gerenciar o estado dos eventos estatísticos.
+ */
 const estatisticasAdapter = createEntityAdapter();
 
+/**
+ * Slice de estatísticas para gerenciar o estado Redux do CRUD e logs de auditoria.
+ */
 export const estatisticasSlice = createSlice({
   name: 'estatisticas',
   initialState: estatisticasAdapter.getInitialState({
@@ -315,7 +357,10 @@ export const estatisticasSlice = createSlice({
   },
 });
 
-// Seletores prontos para os componentes
+/**
+ * Seletores automáticos gerados pelo adaptador de estatísticas.
+ * Expõe selectAllEstatisticas, selectEstatisticaById e selectEstatisticaIds.
+ */
 export const {
   selectAll: selectAllEstatisticas,
   selectById: selectEstatisticaById,

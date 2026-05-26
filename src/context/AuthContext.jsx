@@ -1,16 +1,56 @@
+/**
+ * Módulo de Autenticação e Gestão de Sessões de Usuários.
+ * Integra-se com o Supabase Auth e fornece fallback para sessões locais/guest.
+ * @module context/AuthContext
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase.js';
 
-/*
- * CONTEXTO DE AUTENTICAÇÃO (React Context API)
- * createContext cria o "canal" pelo qual todos os componentes filhos podem
- * acessar o usuário logado e as funções de login/logout sem precisar de props.
- * É o equivalente ao Redux, mas focado apenas em autenticação.
+/**
+ * Representa uma sessão de usuário normalizada no ScoutIQ.
+ * @typedef {Object} UserSession
+ * @property {string} id - Identificador exclusivo do usuário (UUID do Supabase ou ID provisório).
+ * @property {string} name - Nome de exibição do usuário.
+ * @property {string} email - Endereço de e-mail do usuário.
+ * @property {string} role - Nível de permissão/acesso do usuário ('user', 'admin').
+ */
+
+/**
+ * Interface do valor do contexto de autenticação exposto pelo useAuth.
+ * @typedef {Object} AuthContextProps
+ * @property {UserSession|null} user - O usuário atualmente logado ou null.
+ * @property {boolean} loading - Sinaliza se a sessão inicial ainda está sendo carregada do Supabase.
+ * @property {UserSession[]} allUsers - Lista de todos os usuários registrados localmente (para fins de administração local).
+ * @property {function(string, string): Promise<Object>} login - Autentica um usuário usando e-mail e senha.
+ * @property {function(string, string, string): Promise<Object>} signup - Cadastra um novo usuário no Supabase.
+ * @property {function(): Promise<void>} logout - Encerra a sessão ativa do usuário.
+ * @property {function(string): Promise<void>} upgradeRole - Atualiza a role do próprio usuário no Supabase.
+ * @property {function(string, string): void} setUserRole - Atualiza a role de outro usuário (salva localmente).
+ * @property {function(): Object} loginAsGuest - Efetua login local sob uma conta convidada de teste (Admin).
+ */
+
+/**
+ * Contexto de autenticação do React.
+ * @type {React.Context<AuthContextProps|null>}
  */
 const AuthContext = createContext(null);
 
+/**
+ * Chave de armazenamento local para a lista de auditoria de usuários.
+ * @type {string}
+ * @constant
+ */
 const USERS_KEY = 'scoutiq_users';
 
+/**
+ * Provedor de contexto de autenticação.
+ * Controla o estado de login, persistência de usuários locais e sincronização com o Supabase.
+ *
+ * @param {Object} props - Propriedades do componente.
+ * @param {React.ReactNode} props.children - Elementos filhos a serem renderizados.
+ * @returns {JSX.Element} O componente Provider do React.
+ */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,9 +70,11 @@ export function AuthProvider({ children }) {
     localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
   }, [allUsers]);
 
-  /*
-   * buildSession — converte o objeto bruto do Supabase para o formato interno
-   * Normaliza os metadados (nome, role) e garante um fallback para cada campo.
+  /**
+   * Converte o objeto bruto de usuário retornado pelo Supabase para o formato de sessão interna normalizado.
+   *
+   * @param {Object} supaUser - Objeto de usuário bruto retornado pelo Supabase Auth.
+   * @returns {UserSession|null} Objeto contendo os dados do usuário normalizados ou null se supaUser não existir.
    */
   const buildSession = (supaUser) => {
     if (!supaUser) return null;
@@ -45,10 +87,10 @@ export function AuthProvider({ children }) {
     };
   };
 
-  /*
-   * syncToUserList — mantém a lista de todos os usuários atualizada.
-   * Se o usuário já existe na lista, atualiza seus dados; senão, adiciona.
-   * Usado tanto no login quanto no cadastro para manter o painel Admin em dia.
+  /**
+   * Adiciona ou atualiza um usuário na lista de sessões locais registradas no localStorage.
+   *
+   * @param {UserSession} session - O objeto de sessão de usuário a ser sincronizado.
    */
   const syncToUserList = (session) => {
     if (!session) return;
@@ -61,12 +103,9 @@ export function AuthProvider({ children }) {
     });
   };
 
-  /*
-   * INICIALIZAÇÃO DA SESSÃO (useEffect no mount)
-   * Ao carregar a app, tenta restaurar a sessão ativa do Supabase.
-   * onAuthStateChange escuta mudanças em tempo real (login, logout, refresh de token)
-   * e mantém o estado React sincronizado com o Supabase automaticamente.
-   * O cleanup (subscription.unsubscribe) evita memory leaks ao desmontar o Provider.
+  /**
+   * Inicializa a sessão ao carregar o componente, recuperando a sessão atual do Supabase
+   * e ouvindo eventos de mudança de autenticação (login, logout, token refresh).
    */
   useEffect(() => {
     const initSession = async () => {
@@ -101,9 +140,13 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  /*
-   * login — autentica com email e senha via Supabase.
-   * Retorna { success, user } ou { success: false, error } para o componente tratar.
+  /**
+   * Autentica um usuário usando e-mail e senha via Supabase Auth.
+   * Em caso de sucesso, atualiza o estado local e a lista persistente.
+   *
+   * @param {string} email - Endereço de e-mail do usuário.
+   * @param {string} password - Senha de acesso do usuário.
+   * @returns {Promise<Object>} Resultado da tentativa de login. Contém `success` (boolean), `user` (UserSession) ou `error` (string).
    */
   const login = async (email, password) => {
     try {
@@ -118,10 +161,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /*
-   * signup — cria nova conta no Supabase com nome e role padrão 'user'.
-   * Se confirmação de email estiver ativa, retorna needsConfirmation: true
-   * para o componente exibir a mensagem correta ao usuário.
+  /**
+   * Cadastra uma nova conta de usuário usando e-mail e senha no Supabase Auth.
+   *
+   * @param {string} email - Endereço de e-mail.
+   * @param {string} password - Senha de acesso.
+   * @param {string} name - Nome de exibição.
+   * @returns {Promise<Object>} Resultado do cadastro. Contém `success` (boolean), `user` (UserSession) ou `needsConfirmation` (boolean).
    */
   const signup = async (email, password, name) => {
     try {
@@ -148,16 +194,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /* logout — encerra a sessão no Supabase e limpa o estado local. */
+  /**
+   * Finaliza a sessão ativa do usuário no Supabase e redefine o estado interno.
+   *
+   * @returns {Promise<void>}
+   */
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
-  /*
-   * loginAsGuest — modo demo sem Supabase.
-   * Cria uma sessão local com role 'admin' para que o visitante possa
-   * explorar todas as funcionalidades da plataforma sem criar conta.
+  /**
+   * Efetua o login como convidado de demonstração (Guest Mode).
+   * Cria e armazena uma sessão fictícia com privilégios de Admin.
+   *
+   * @returns {{success: boolean, user: UserSession}} Detalhes da sessão convidada criada.
    */
   const loginAsGuest = () => {
     const guestSession = {
@@ -171,9 +222,11 @@ export function AuthProvider({ children }) {
     return { success: true, user: guestSession };
   };
 
-  /*
-   * upgradeRole — permite que o próprio usuário suba seu nível de acesso.
-   * Atualiza os metadados no Supabase e reflete a mudança no estado local.
+  /**
+   * Eleva o nível de acesso (role) do próprio usuário logado no Supabase.
+   *
+   * @param {string} newRole - A nova role (ex: 'admin', 'user').
+   * @returns {Promise<void>}
    */
   const upgradeRole = async (newRole) => {
     if (!user) return;
@@ -189,11 +242,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /*
-   * setUserRole — função exclusiva do Admin para alterar o papel de outro usuário.
-   * Como não temos acesso à API admin do Supabase no frontend, a mudança é
-   * armazenada apenas localmente (localStorage via allUsers).
-   * Se o admin alterar o próprio papel, também atualiza via Supabase.
+  /**
+   * Altera a role de outro usuário específico (função exclusiva de administradores).
+   * Salva as mudanças na lista local (allUsers) e, se o próprio usuário Admin estiver alterando a si mesmo,
+   * atualiza também via Supabase.
+   *
+   * @param {string} userId - ID do usuário alvo.
+   * @param {string} newRole - A nova role atribuída.
    */
   const setUserRole = (userId, newRole) => {
     setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
@@ -202,10 +257,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  /*
-   * PROVIDER — expõe todas as funções e o estado do usuário para a árvore de componentes.
-   * Qualquer componente que chamar useAuth() terá acesso a esses valores.
-   */
   return (
     <AuthContext.Provider value={{
       user,
@@ -223,9 +274,12 @@ export function AuthProvider({ children }) {
   );
 }
 
-/*
- * useAuth — hook customizado que encapsula useContext(AuthContext).
- * Lança um erro claro se usado fora do AuthProvider, facilitando o debug.
+/**
+ * Hook customizado para consumir os dados e funções de autenticação do AuthProvider.
+ * Deve ser usado obrigatoriamente dentro de uma árvore envelopada por AuthProvider.
+ *
+ * @returns {AuthContextProps} Um objeto contendo a sessão ativa e as funções de autenticação.
+ * @throws {Error} Se o hook for invocado fora do componente AuthProvider.
  */
 export function useAuth() {
   const ctx = useContext(AuthContext);

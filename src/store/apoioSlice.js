@@ -1,10 +1,33 @@
+/**
+ * Slice do Redux para Apoio à Decisão no ScoutIQ.
+ * Responsável por gerenciar simulações de cenários de compra,
+ * persistência de relatórios oficiais e envio de propostas de contratos.
+ * @module store/apoioSlice
+ */
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gerarCenarios } from '../utils/algorithm.js';
 
-const API_URL       = 'http://localhost:3001/relatorios';
+/**
+ * Endereço base da API para relatórios.
+ * @type {string}
+ * @constant
+ */
+const API_URL = 'http://localhost:3001/relatorios';
+
+/**
+ * Endereço base da API para propostas de contrato.
+ * @type {string}
+ * @constant
+ */
 const PROPOSTAS_URL = 'http://localhost:3001/propostas';
 
-// 1. A MATEMÁTICA CONTINUA LOCAL: O algoritmo roda aqui no front-end
+/**
+ * Thunk assíncrono para simular cenários de compra.
+ * Introduz um atraso artificial de 600ms para simular processamento pesado e invoca o algoritmo.
+ *
+ * @type {Function}
+ */
 export const simularCenarios = createAsyncThunk(
   'apoio/simular',
   async ({ allPlayers, config }) => {
@@ -13,7 +36,12 @@ export const simularCenarios = createAsyncThunk(
   }
 );
 
-// 2. SALVAR O RELATÓRIO NO BANCO DE DADOS (POST)
+/**
+ * Thunk assíncrono para salvar um relatório (pacote oficial selecionado).
+ * Realiza uma requisição POST com o array de atletas e o nome do relatório.
+ *
+ * @type {Function}
+ */
 export const salvarPacoteOficial = createAsyncThunk(
   'apoio/salvarRelatorio',
   async ({ pacoteArray, nomeRelatorio }) => { 
@@ -34,7 +62,11 @@ export const salvarPacoteOficial = createAsyncThunk(
   }
 );
 
-// 3. BUSCAR HISTÓRICO DE RELATÓRIOS (GET) - ESSA FALTAVA!
+/**
+ * Thunk assíncrono para buscar o histórico de relatórios salvos.
+ *
+ * @type {Function}
+ */
 export const fetchRelatorios = createAsyncThunk(
   'apoio/fetchRelatorios', 
   async () => {
@@ -43,7 +75,11 @@ export const fetchRelatorios = createAsyncThunk(
   }
 );
 
-// 4. EXCLUIR UM RELATÓRIO DO HISTÓRICO (DELETE) - ESSA FALTAVA!
+/**
+ * Thunk assíncrono para excluir um relatório específico do banco de dados.
+ *
+ * @type {Function}
+ */
 export const deletarRelatorio = createAsyncThunk(
   'apoio/deletarRelatorio', 
   async (id) => {
@@ -51,7 +87,12 @@ export const deletarRelatorio = createAsyncThunk(
     return id;
   }
 );
-// 5. SALVAR PROPOSTA DE CONTRATO (POST)
+
+/**
+ * Thunk assíncrono para salvar uma nova proposta de contrato direcionada a um atleta.
+ *
+ * @type {Function}
+ */
 export const salvarProposta = createAsyncThunk(
   'apoio/salvarProposta',
   async ({ player, proposal }) => {
@@ -76,7 +117,11 @@ export const salvarProposta = createAsyncThunk(
   }
 );
 
-// 6. BUSCAR PROPOSTAS (GET)
+/**
+ * Thunk assíncrono para obter todas as propostas enviadas aos jogadores.
+ *
+ * @type {Function}
+ */
 export const fetchPropostas = createAsyncThunk(
   'apoio/fetchPropostas',
   async () => {
@@ -85,7 +130,11 @@ export const fetchPropostas = createAsyncThunk(
   }
 );
 
-// 7. DELETAR PROPOSTA (DELETE)
+/**
+ * Thunk assíncrono para excluir uma proposta de contrato.
+ *
+ * @type {Function}
+ */
 export const deletarProposta = createAsyncThunk(
   'apoio/deletarProposta',
   async (id) => {
@@ -94,11 +143,14 @@ export const deletarProposta = createAsyncThunk(
   }
 );
 
-// 8. ATUALIZAR O NOME DO RELATÓRIO (PATCH)
+/**
+ * Thunk assíncrono para renomear um relatório salvo através de uma requisição parcial PATCH.
+ *
+ * @type {Function}
+ */
 export const renomearRelatorio = createAsyncThunk(
   'apoio/renomearRelatorio', 
   async ({ id, novoNome }) => {
-    // Usamos PATCH porque queremos alterar APENAS o nome, sem mexer nos atletas
     const response = await fetch(`${API_URL}/${id}`, { 
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -108,6 +160,9 @@ export const renomearRelatorio = createAsyncThunk(
   }
 );
 
+/**
+ * Slice de apoio contendo reducers locais para seleção e limpeza de cenários, além de extraReducers para os thunks assíncronos.
+ */
 const apoioSlice = createSlice({
   name: 'apoio',
   initialState: {
@@ -121,9 +176,15 @@ const apoioSlice = createSlice({
     loadingPropostas: false,
   },
   reducers: {
+    /**
+     * Define o pacote selecionado como oficial.
+     */
     selecionarPacoteOficial: (state, action) => {
       state.pacoteSelecionado = action.payload;
     },
+    /**
+     * Limpa os cenários gerados e redefine o pacote selecionado como nulo.
+     */
     limparSimulacao: (state) => {
       state.cenariosGerados = null;
       state.pacoteSelecionado = null;
@@ -148,37 +209,35 @@ const apoioSlice = createSlice({
         state.loadingRelatorio = false;
         state.pacoteSelecionado = action.payload; 
       })
-
+ 
       // --- BUSCAR HISTÓRICO DE RELATÓRIOS ---
       .addCase(fetchRelatorios.pending, (state) => { 
         state.loadingHistorico = true; 
       })
       .addCase(fetchRelatorios.fulfilled, (state, action) => {
         state.loadingHistorico = false;
-        // Verifica se é realmente um array. Se não for, assume array vazio.
         const dados = Array.isArray(action.payload) ? action.payload : [];
         state.historicoRelatorios = [...dados].reverse(); 
       })
-
+ 
       // --- RENOMEAR RELATÓRIO ---
       .addCase(renomearRelatorio.fulfilled, (state, action) => {
-        // Encontra o relatório na lista e atualiza o nome dele instantaneamente na tela
         const index = state.historicoRelatorios.findIndex(r => r.id === action.payload.id);
         if (index !== -1) {
           state.historicoRelatorios[index].nome = action.payload.nome;
         }
       })
-
+ 
       // --- DELETAR RELATÓRIO ---
       .addCase(deletarRelatorio.fulfilled, (state, action) => {
         state.historicoRelatorios = state.historicoRelatorios.filter(r => r.id !== action.payload);
       })
-
+ 
       // --- SALVAR PROPOSTA ---
       .addCase(salvarProposta.fulfilled, (state, action) => {
         state.propostas.unshift(action.payload);
       })
-
+ 
       // --- BUSCAR PROPOSTAS ---
       .addCase(fetchPropostas.pending, (state) => { state.loadingPropostas = true; })
       .addCase(fetchPropostas.fulfilled, (state, action) => {
@@ -186,7 +245,7 @@ const apoioSlice = createSlice({
         const dados = Array.isArray(action.payload) ? action.payload : [];
         state.propostas = [...dados].reverse();
       })
-
+ 
       // --- DELETAR PROPOSTA ---
       .addCase(deletarProposta.fulfilled, (state, action) => {
         state.propostas = state.propostas.filter(p => p.id !== action.payload);
@@ -195,4 +254,4 @@ const apoioSlice = createSlice({
 });
 
 export const { limparSimulacao, selecionarPacoteOficial } = apoioSlice.actions;
-export default apoioSlice.reducer;
+export default apoioSlice.reducer;
