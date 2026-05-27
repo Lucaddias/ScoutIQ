@@ -1,0 +1,9 @@
+# Dependências instaladas (nunca versionar)
+node_modules/
+
+# Variáveis de ambiente com dados sensíveis
+.env
+
+# Logs de erro
+*.log
+npm-debug.log*
