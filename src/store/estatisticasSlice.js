@@ -7,27 +7,7 @@
 
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
 import { fetchAtletas } from './atletasSlice';
-
-/**
- * Endereço base da API.
- * @type {string}
- * @constant
- */
-const API_BASE = 'http://localhost:3001';
-
-/**
- * URL da coleção de estatísticas.
- * @type {string}
- * @constant
- */
-const STATS_URL = `${API_BASE}/estatisticas`;
-
-/**
- * URL da coleção de atletas.
- * @type {string}
- * @constant
- */
-const ATHLETES_URL = `${API_BASE}/athletes`;
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Helper interno para buscar um atleta individual por ID no servidor.
@@ -36,9 +16,13 @@ const ATHLETES_URL = `${API_BASE}/athletes`;
  * @returns {Promise<Object>} Dados do atleta retornado pela API.
  */
 const fetchAtleta = async (id) => {
-  const res = await fetch(`${ATHLETES_URL}/${id}`);
-  if (!res.ok) throw new Error(`Atleta ${id} não encontrado`);
-  return res.json();
+  const { data, error } = await supabase
+    .from('athletes')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) throw new Error(`Atleta ${id} não encontrado: ${error.message}`);
+  return data;
 };
 
 /**
@@ -57,13 +41,14 @@ const patchAtletaStat = async (jogadorId, statKey, delta) => {
   const newVal = Math.max(0, currentVal + delta); // nunca fica negativo
 
   const updatedStats = { ...stats, [statKey]: newVal };
-  const res = await fetch(`${ATHLETES_URL}/${jogadorId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ statistics: updatedStats }),
-  });
-  if (!res.ok) throw new Error('Erro ao atualizar estatísticas do atleta');
-  return res.json();
+  const { data, error } = await supabase
+    .from('athletes')
+    .update({ statistics: updatedStats })
+    .eq('id', jogadorId)
+    .select()
+    .single();
+  if (error) throw new Error(`Erro ao atualizar estatísticas do atleta: ${error.message}`);
+  return data;
 };
 
 // ──────────────────────────────────────────────────
@@ -71,16 +56,18 @@ const patchAtletaStat = async (jogadorId, statKey, delta) => {
 // ──────────────────────────────────────────────────
 
 /**
- * Thunk assíncrono para buscar todos os registros de estatísticas individuais do json-server.
+ * Thunk assíncrono para buscar todos os registros de estatísticas individuais.
  *
  * @type {Function}
  */
 export const fetchEstatisticas = createAsyncThunk(
   'estatisticas/fetchAll',
   async () => {
-    const res = await fetch(STATS_URL);
-    if (!res.ok) throw new Error('Erro ao buscar estatísticas');
-    return res.json();
+    const { data, error } = await supabase
+      .from('estatisticas')
+      .select('*');
+    if (error) throw new Error(`Erro ao buscar estatísticas: ${error.message}`);
+    return data;
   }
 );
 
@@ -94,13 +81,12 @@ export const criarEstatistica = createAsyncThunk(
   'estatisticas/criar',
   async (registro, { dispatch }) => {
     // 1. Persiste o registro de estatística
-    const res = await fetch(STATS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registro),
-    });
-    if (!res.ok) throw new Error('Erro ao criar estatística');
-    const created = await res.json();
+    const { data, error } = await supabase
+      .from('estatisticas')
+      .insert([registro])
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao criar estatística: ${error.message}`);
 
     // 2. Sincroniza com o atleta (dupla escrita)
     await patchAtletaStat(registro.jogadorId, registro.tipoEstatistica, Number(registro.valor));
@@ -108,7 +94,7 @@ export const criarEstatistica = createAsyncThunk(
     // 3. Re-busca a lista de atletas para o Redux refletir a mudança
     dispatch(fetchAtletas());
 
-    return created;
+    return data;
   }
 );
 
@@ -121,27 +107,22 @@ export const criarEstatistica = createAsyncThunk(
 export const criarEstatisticasEmLote = createAsyncThunk(
   'estatisticas/criarEmLote',
   async ({ jogadorData, entries, data }, { dispatch }) => {
-    const created = [];
+    // 1. Prepara e insere registros individuais na coleção estatisticas
+    const recordsToInsert = entries.map(entry => ({
+      jogadorId: jogadorData.jogadorId,
+      jogador: jogadorData.jogador,
+      jogadorImg: jogadorData.jogadorImg,
+      jogadorTeam: jogadorData.jogadorTeam,
+      tipoEstatistica: entry.tipoEstatistica,
+      valor: Number(entry.valor),
+      data,
+    }));
 
-    // 1. POST individual para cada entrada na coleção estatisticas
-    for (const entry of entries) {
-      const registro = {
-        jogadorId: jogadorData.jogadorId,
-        jogador: jogadorData.jogador,
-        jogadorImg: jogadorData.jogadorImg,
-        jogadorTeam: jogadorData.jogadorTeam,
-        tipoEstatistica: entry.tipoEstatistica,
-        valor: Number(entry.valor),
-        data,
-      };
-      const res = await fetch(STATS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registro),
-      });
-      if (!res.ok) throw new Error('Erro ao criar estatística em lote');
-      created.push(await res.json());
-    }
+    const { data: insertedRecords, error } = await supabase
+      .from('estatisticas')
+      .insert(recordsToInsert)
+      .select();
+    if (error) throw new Error(`Erro ao criar estatísticas em lote: ${error.message}`);
 
     // 2. Acumula deltas por tipo de stat para um único PATCH otimizado
     const deltaMap = {};
@@ -156,16 +137,17 @@ export const criarEstatisticasEmLote = createAsyncThunk(
     for (const [key, delta] of Object.entries(deltaMap)) {
       stats[key] = Math.max(0, (Number(stats[key]) || 0) + delta);
     }
-    await fetch(`${ATHLETES_URL}/${jogadorData.jogadorId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ statistics: stats }),
-    });
+
+    const { error: updateError } = await supabase
+      .from('athletes')
+      .update({ statistics: stats })
+      .eq('id', jogadorData.jogadorId);
+    if (updateError) throw new Error(`Erro ao atualizar atleta com estatísticas do lote: ${updateError.message}`);
 
     // 4. Re-busca atletas
     dispatch(fetchAtletas());
 
-    return created;
+    return insertedRecords;
   }
 );
 
@@ -179,13 +161,13 @@ export const atualizarEstatistica = createAsyncThunk(
   'estatisticas/atualizar',
   async ({ registro, valorAnterior, tipoAnterior, jogadorIdAnterior }, { dispatch }) => {
     // 1. Atualiza o registro
-    const res = await fetch(`${STATS_URL}/${registro.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(registro),
-    });
-    if (!res.ok) throw new Error('Erro ao atualizar estatística');
-    const updated = await res.json();
+    const { data, error } = await supabase
+      .from('estatisticas')
+      .update(registro)
+      .eq('id', registro.id)
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao atualizar estatística: ${error.message}`);
 
     // 2. Se mudou o jogador ou o tipo de stat, reverter do antigo e aplicar no novo
     const mesmoJogador = jogadorIdAnterior === registro.jogadorId;
@@ -206,7 +188,7 @@ export const atualizarEstatistica = createAsyncThunk(
     // 3. Re-busca atletas
     dispatch(fetchAtletas());
 
-    return updated;
+    return data;
   }
 );
 
@@ -219,10 +201,11 @@ export const deletarEstatistica = createAsyncThunk(
   'estatisticas/deletar',
   async (registro, { dispatch }) => {
     // 1. Remove o registro
-    const res = await fetch(`${STATS_URL}/${registro.id}`, {
-      method: 'DELETE',
-    });
-    if (!res.ok) throw new Error('Erro ao deletar estatística');
+    const { error } = await supabase
+      .from('estatisticas')
+      .delete()
+      .eq('id', registro.id);
+    if (error) throw new Error(`Erro ao deletar estatística: ${error.message}`);
 
     // 2. Decrementa no atleta
     await patchAtletaStat(registro.jogadorId, registro.tipoEstatistica, -Number(registro.valor));
@@ -246,16 +229,16 @@ export const ajustarStatAtleta = createAsyncThunk(
     const delta = Number(valorNovo) - Number(valorAntigo);
     if (delta === 0) return null;
 
-
     // 1. PATCH direto no atleta com o novo valor absoluto
     const atleta = await fetchAtleta(jogadorId);
     const stats = { ...(atleta.statistics || {}) };
     stats[statKey] = Math.max(0, Number(valorNovo));
-    await fetch(`${ATHLETES_URL}/${jogadorId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ statistics: stats }),
-    });
+
+    const { error: updateError } = await supabase
+      .from('athletes')
+      .update({ statistics: stats })
+      .eq('id', jogadorId);
+    if (updateError) throw new Error(`Erro ao ajustar estatísticas do atleta: ${updateError.message}`);
 
     // 2. Cria registro de auditoria em estatisticas
     const auditRecord = {
@@ -268,12 +251,13 @@ export const ajustarStatAtleta = createAsyncThunk(
       data: new Date().toISOString().split('T')[0],
       tipo: 'ajuste',
     };
-    const res = await fetch(STATS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(auditRecord),
-    });
-    const created = await res.json();
+
+    const { data: created, error: insertError } = await supabase
+      .from('estatisticas')
+      .insert([auditRecord])
+      .select()
+      .single();
+    if (insertError) throw new Error(`Erro ao registrar auditoria de ajuste: ${insertError.message}`);
 
     // 3. Re-busca atletas
     dispatch(fetchAtletas());

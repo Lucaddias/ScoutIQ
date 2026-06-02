@@ -7,20 +7,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gerarCenarios } from '../utils/algorithm.js';
-
-/**
- * Endereço base da API para relatórios.
- * @type {string}
- * @constant
- */
-const API_URL = 'http://localhost:3001/relatorios';
-
-/**
- * Endereço base da API para propostas de contrato.
- * @type {string}
- * @constant
- */
-const PROPOSTAS_URL = 'http://localhost:3001/propostas';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Thunk assíncrono para simular cenários de compra.
@@ -52,13 +39,14 @@ export const salvarPacoteOficial = createAsyncThunk(
       atletas: pacoteArray
     };
     
-    await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(novoRelatorio)
-    });
+    const { data, error } = await supabase
+      .from('relatorios')
+      .insert([novoRelatorio])
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao salvar relatório: ${error.message}`);
     
-    return novoRelatorio; 
+    return data; 
   }
 );
 
@@ -70,8 +58,11 @@ export const salvarPacoteOficial = createAsyncThunk(
 export const fetchRelatorios = createAsyncThunk(
   'apoio/fetchRelatorios', 
   async () => {
-    const response = await fetch(API_URL);
-    return await response.json();
+    const { data, error } = await supabase
+      .from('relatorios')
+      .select('*');
+    if (error) throw new Error(`Erro ao buscar relatórios: ${error.message}`);
+    return data;
   }
 );
 
@@ -83,7 +74,11 @@ export const fetchRelatorios = createAsyncThunk(
 export const deletarRelatorio = createAsyncThunk(
   'apoio/deletarRelatorio', 
   async (id) => {
-    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    const { error } = await supabase
+      .from('relatorios')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar relatório: ${error.message}`);
     return id;
   }
 );
@@ -108,12 +103,13 @@ export const salvarProposta = createAsyncThunk(
       jogadorScore: player.score,
       ...proposal,
     };
-    await fetch(PROPOSTAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nova),
-    });
-    return nova;
+    const { data, error } = await supabase
+      .from('propostas')
+      .insert([nova])
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao salvar proposta: ${error.message}`);
+    return data;
   }
 );
 
@@ -125,8 +121,11 @@ export const salvarProposta = createAsyncThunk(
 export const fetchPropostas = createAsyncThunk(
   'apoio/fetchPropostas',
   async () => {
-    const response = await fetch(PROPOSTAS_URL);
-    return await response.json();
+    const { data, error } = await supabase
+      .from('propostas')
+      .select('*');
+    if (error) throw new Error(`Erro ao buscar propostas: ${error.message}`);
+    return data;
   }
 );
 
@@ -138,7 +137,11 @@ export const fetchPropostas = createAsyncThunk(
 export const deletarProposta = createAsyncThunk(
   'apoio/deletarProposta',
   async (id) => {
-    await fetch(`${PROPOSTAS_URL}/${id}`, { method: 'DELETE' });
+    const { error } = await supabase
+      .from('propostas')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar proposta: ${error.message}`);
     return id;
   }
 );
@@ -151,12 +154,14 @@ export const deletarProposta = createAsyncThunk(
 export const renomearRelatorio = createAsyncThunk(
   'apoio/renomearRelatorio', 
   async ({ id, novoNome }) => {
-    const response = await fetch(`${API_URL}/${id}`, { 
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: novoNome })
-    });
-    return await response.json();
+    const { data, error } = await supabase
+      .from('relatorios')
+      .update({ nome: novoNome })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao renomear relatório: ${error.message}`);
+    return data;
   }
 );
 

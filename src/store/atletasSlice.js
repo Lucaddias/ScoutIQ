@@ -5,13 +5,7 @@
  */
 
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-
-/**
- * Endereço base da API para atletas.
- * @type {string}
- * @constant
- */
-const API_URL = 'http://localhost:3001/athletes';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Thunk assíncrono para buscar todos os atletas do servidor.
@@ -20,24 +14,26 @@ const API_URL = 'http://localhost:3001/athletes';
  * @type {Function}
  */
 export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () => {
-  const response = await fetch(API_URL);
-  if (!response.ok) throw new Error('Erro ao buscar atletas');
-  return await response.json(); // Retorna o array de atletas
+  const { data, error } = await supabase
+    .from('athletes')
+    .select('*');
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
  * Thunk assíncrono para criar um novo atleta no servidor.
- * O JSON Server gera o ID automaticamente.
  *
  * @type {Function}
  */
 export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJogador) => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(novoJogador)
-  });
-  return await response.json(); // Retorna o jogador criado (com o ID novo)
+  const { data, error } = await supabase
+    .from('athletes')
+    .insert([novoJogador])
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
@@ -46,12 +42,14 @@ export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJo
  * @type {Function}
  */
 export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
-  const response = await fetch(`${API_URL}/${jogador.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(jogador)
-  });
-  return await response.json(); // Retorna o jogador atualizado
+  const { data, error } = await supabase
+    .from('athletes')
+    .update(jogador)
+    .eq('id', jogador.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
@@ -60,9 +58,11 @@ export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', a
  * @type {Function}
  */
 export const deletarAtletaMock = createAsyncThunk('atletas/deletarAtleta', async (id) => {
-  await fetch(`${API_URL}/${id}`, { 
-    method: 'DELETE' 
-  });
+  const { error } = await supabase
+    .from('athletes')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
   return id; // Retornamos o ID para o Redux saber quem remover da tela
 });
 
