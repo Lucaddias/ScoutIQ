@@ -60,7 +60,8 @@ export const fetchRelatorios = createAsyncThunk(
   async () => {
     const { data, error } = await supabase
       .from('relatorios')
-      .select('*');
+      .select('*')
+      .order('dataCriacao', { ascending: false });
     if (error) throw new Error(`Erro ao buscar relatórios: ${error.message}`);
     return data;
   }
@@ -123,7 +124,8 @@ export const fetchPropostas = createAsyncThunk(
   async () => {
     const { data, error } = await supabase
       .from('propostas')
-      .select('*');
+      .select('*')
+      .order('dataCriacao', { ascending: false });
     if (error) throw new Error(`Erro ao buscar propostas: ${error.message}`);
     return data;
   }
@@ -222,7 +224,7 @@ const apoioSlice = createSlice({
       .addCase(fetchRelatorios.fulfilled, (state, action) => {
         state.loadingHistorico = false;
         const dados = Array.isArray(action.payload) ? action.payload : [];
-        state.historicoRelatorios = [...dados].reverse(); 
+        state.historicoRelatorios = dados; 
       })
  
       // --- RENOMEAR RELATÓRIO ---
@@ -248,7 +250,7 @@ const apoioSlice = createSlice({
       .addCase(fetchPropostas.fulfilled, (state, action) => {
         state.loadingPropostas = false;
         const dados = Array.isArray(action.payload) ? action.payload : [];
-        state.propostas = [...dados].reverse();
+        state.propostas = dados;
       })
  
       // --- DELETAR PROPOSTA ---

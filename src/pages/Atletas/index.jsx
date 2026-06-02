@@ -125,7 +125,9 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       team: formulario.team,
       marketValue: parseBR(formulario.marketValue),
       monthlySalary: parseBR(formulario.monthlySalary),
-      stats: {}
+      age: 25, // Default age
+      profileImageURL: '',
+      statistics: { goals: 0, assists: 0 } // Fix column name from 'stats' to 'statistics'
     };
     dispatch(criarAtleta(novoJogador));
     setModalAberto(false);

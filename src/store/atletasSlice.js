@@ -1,11 +1,11 @@
 /**
  * Slice do Redux para controle dos Atletas/Jogadores do ScoutIQ.
- * Centraliza o estado e operações CRUD se conectando ao JSON-Server.
+ * Centraliza o estado e operações CRUD se conectando ao Supabase.
  * @module store/atletasSlice
  */
 
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import { supabase } from '../lib/supabase.js';
+import { supabase } from '../services/supabase.js';
 
 /**
  * Thunk assíncrono para buscar todos os atletas do servidor.
@@ -23,13 +23,18 @@ export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () =>
 
 /**
  * Thunk assíncrono para criar um novo atleta no servidor.
+ * Gera um ID único com prefixo 'USR-' para diferenciar de atletas importados ('SF-').
  *
  * @type {Function}
  */
 export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJogador) => {
+  const atletaComId = {
+    id: `USR-${crypto.randomUUID()}`,
+    ...novoJogador,
+  };
   const { data, error } = await supabase
     .from('athletes')
-    .insert([novoJogador])
+    .insert([atletaComId])
     .select()
     .single();
   if (error) throw new Error(error.message);
