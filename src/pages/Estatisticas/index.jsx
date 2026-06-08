@@ -13,7 +13,11 @@ import {
 import { formatBRL, positionFullLabel } from '../../utils/formatters.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
-import playersData from '../../data/players_updated.json';
+// Chaves de estatísticas disponíveis (anteriormente lidas do JSON local)
+const STAT_KEYS_STATIC = [
+  'gamesPlayed', 'goals', 'assists', 'totalPasses', 'accuratePasses',
+  'tackles', 'interceptions', 'yellowCards', 'redCards', 'minutesPlayed', 'distanceCoveredKm',
+];
 import './Estatisticas.css';
 
 const POS_ORDER = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
@@ -42,11 +46,7 @@ const STAT_LABELS = {
  * Usa o primeiro atleta válido como referência, garantindo que o admin só possa
  * selecionar tipos de estatísticas que realmente existem no banco de dados.
  */
-const getStatKeys = () => {
-  const athletes = playersData?.athletes || [];
-  const first = athletes.find(a => a.statistics && typeof a.statistics === 'object');
-  return first ? Object.keys(first.statistics) : [];
-};
+const getStatKeys = () => STAT_KEYS_STATIC;
 
 export default function Estatisticas({ onPlayerClick }) {
   const { user } = useAuth();

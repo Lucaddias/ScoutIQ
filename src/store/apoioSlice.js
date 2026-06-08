@@ -31,22 +31,26 @@ export const simularCenarios = createAsyncThunk(
  */
 export const salvarPacoteOficial = createAsyncThunk(
   'apoio/salvarRelatorio',
-  async ({ pacoteArray, nomeRelatorio }) => { 
+  async ({ pacoteArray, nomeRelatorio }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado.');
+
     const novoRelatorio = {
       id: `rel_${Date.now()}`,
-      nome: nomeRelatorio, 
+      nome: nomeRelatorio,
       dataCriacao: new Date().toISOString(),
-      atletas: pacoteArray
+      atletas: pacoteArray,
+      user_id: user.id,
     };
-    
+
     const { data, error } = await supabase
       .from('relatorios')
       .insert([novoRelatorio])
       .select()
       .single();
     if (error) throw new Error(`Erro ao salvar relatório: ${error.message}`);
-    
-    return data; 
+
+    return data;
   }
 );
 
@@ -92,6 +96,9 @@ export const deletarRelatorio = createAsyncThunk(
 export const salvarProposta = createAsyncThunk(
   'apoio/salvarProposta',
   async ({ player, proposal }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado.');
+
     const nova = {
       id: `prop_${Date.now()}`,
       tipo: 'proposta',
@@ -102,6 +109,7 @@ export const salvarProposta = createAsyncThunk(
       jogadorPosicao: player.position,
       jogadorFoto: player.profileImageURL || '',
       jogadorScore: player.score,
+      user_id: user.id,
       ...proposal,
     };
     const { data, error } = await supabase
