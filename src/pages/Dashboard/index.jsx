@@ -64,9 +64,18 @@ const Dashboard = ({ page, onNavigate }) => {
           return <div className="main-content"><ApoioDecisao onNavigate={onNavigate} /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'relatorios_elenco':
+        if (canAccess(['user', 'scout', 'admin'])) {
+          return <div className="main-content"><Relatorios filtroInicial="relatorios" /></div>;
+        }
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'relatorios_propostas':
+        if (canAccess(['user', 'scout', 'admin'])) {
+          return <div className="main-content"><Relatorios filtroInicial="propostas" /></div>;
+        }
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'relatorios':
         if (canAccess(['user', 'scout', 'admin'])) {
-          // A tela de relatórios agora vai puxar os dados sozinha do Redux!
           return <div className="main-content"><Relatorios /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
@@ -79,6 +88,12 @@ const Dashboard = ({ page, onNavigate }) => {
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'perfil':
         return <div className="main-with-sidebar"><Perfil /></div>;
+      case 'admin_perfis':
+        if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage filtroInicial="perfis" /></div>;
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'admin_jogadores':
+        if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage filtroInicial="jogadores" /></div>;
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'admin':
         if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage /></div>;
         return <div className="main-content"><h2>Acesso Negado</h2></div>;

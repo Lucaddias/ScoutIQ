@@ -46,9 +46,10 @@ export function computeScore(player) {
   let raw;
   if (isGK) {
     // GK: pass accuracy + distance per minute
+    // coeficiente 0.3 evita que distPerMin (m/min) domine e force raw > 100 sozinho
     const passAcc = s.totalPasses > 0 ? (s.accuratePasses / s.totalPasses) * 100 : 0;
     const distPerMin = (s.distanceCoveredKm * 1000) / minutesPlayed;
-    raw = passAcc * 0.6 + distPerMin * 40;
+    raw = passAcc * 0.7 + distPerMin * 0.3;
   } else {
     const goalsPerGame   = s.goals / gamesPlayed;
     const assistsPerGame = s.assists / gamesPlayed;
@@ -86,6 +87,7 @@ export function computeScore(player) {
  * @returns {EnrichedAthlete[]} Lista de atletas enriquecida com a propriedade `score` normalizada.
  */
 export function enrichPlayers(athletes) {
+  if (athletes.length === 0) return [];
   const scored = athletes.map(p => ({
     ...p,
     score: computeScore(p),
@@ -94,7 +96,9 @@ export function enrichPlayers(athletes) {
   const scores = scored.map(p => p.score);
   const minS = Math.min(...scores);
   const maxS = Math.max(...scores);
-  const range = maxS - minS || 1;
+  const range = maxS - minS;
+  // Se todos os atletas têm o mesmo score bruto, retorna sem normalizar
+  if (range === 0) return scored;
   return scored.map(p => ({
     ...p,
     score: Math.round(((p.score - minS) / range) * 100),

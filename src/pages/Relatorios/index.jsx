@@ -5,11 +5,11 @@ import PlayerCard from '../../components/PlayerCard.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Relatorios.css';
 
-export default function Relatorios() {
+export default function Relatorios({ filtroInicial }) {
   const dispatch = useDispatch();
   const [propostaSelecionada, setPropostaSelecionada] = useState(null);
   const [search, setSearch] = useState('');
-  const [filtro, setFiltro] = useState('todos');
+  const [filtro, setFiltro] = useState(filtroInicial || 'todos');
 
   // Puxamos tudo que precisamos da nossa gaveta de apoio
   const { pacoteSelecionado, historicoRelatorios, loadingHistorico, propostas, loadingPropostas } = useSelector((state) => state.apoio);
@@ -212,8 +212,17 @@ export default function Relatorios() {
   return (
     <div className="relatorios-page">
       <div className="relatorios-header">
-        <h1><i className="fa-solid fa-folder-open"></i> Histórico de Relatórios</h1>
-        <p>Acesse todos os ofícios gerados anteriormente pelo simulador.</p>
+        <h1>
+          <i className={`fa-solid ${filtro === 'propostas' ? 'fa-file-signature' : 'fa-folder-open'}`}></i>
+          {' '}{filtro === 'propostas' ? 'Propostas de Contratos' : filtro === 'relatorios' ? 'Relatórios de Elenco' : 'Histórico de Relatórios'}
+        </h1>
+        <p>
+          {filtro === 'propostas'
+            ? 'Todas as propostas de contrato geradas pelo sistema.'
+            : filtro === 'relatorios'
+            ? 'Todos os relatórios de elenco gerados pelo Apoio à Decisão.'
+            : 'Acesse todos os ofícios gerados anteriormente pelo simulador.'}
+        </p>
       </div>
 
       {/* ── BARRA DE BUSCA E FILTRO ── */}

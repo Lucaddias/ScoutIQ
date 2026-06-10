@@ -55,13 +55,15 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
    * @param {number} maxOrcamento - Orçamento remanescente para o cenário.
    * @param {number} maxTeto - Teto salarial mensal remanescente para o cenário.
    * @param {function(Player): number} rankFn - Função que define a métrica a ser maximizada (ou minimizada, se valor negativo).
-   * @returns {Player[]} Lista de jogadores selecionados para o cenário.
+   * @returns {{ players: Player[], warnings: string[] }} Jogadores selecionados e avisos de vagas não preenchidas.
    */
   function pickBySlots(pool, slotsObj, maxOrcamento, maxTeto, rankFn) {
     const result = [];
+    const warnings = [];
     let usedBudget = 0;
     let usedSalary = 0;
 
+    const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
     const positions = Object.entries(slotsObj).filter(([, count]) => count > 0);
 
     for (const [pos, count] of positions) {
@@ -72,7 +74,7 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
       let picked = 0;
       for (const player of candidates) {
         if (picked >= count) break;
-        if (usedBudget + player.marketValue <= maxOrcamento && 
+        if (usedBudget + player.marketValue <= maxOrcamento &&
             usedSalary + player.monthlySalary <= maxTeto) {
           result.push(player);
           usedBudget += player.marketValue;
@@ -80,17 +82,31 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
           picked++;
         }
       }
+      if (picked < count) {
+        const posLabel = POS_PT[pos] || pos;
+        warnings.push(`${count - picked} vaga(s) de ${posLabel} não puderam ser preenchidas dentro do orçamento.`);
+      }
     }
-    return result;
+    return { players: result, warnings };
   }
 
-  const cenario1 = pickBySlots(elegivel, slots, orcamento, tetoSalarial, p => p.score);
-  const cenario2 = pickBySlots(elegivel, slots, orcamento, tetoSalarial, p => p.score / (p.marketValue / 1_000_000));
-  
-  const floor = cenario1.length > 0 ? (cenario1.reduce((a, p) => a + p.score, 0)/cenario1.length)*0.35 : 50;
-  const eligibleC3 = elegivel.filter(p => p.score >= floor);
-  const cenario3 = pickBySlots(eligibleC3, slots, orcamento, tetoSalarial, p => -(p.marketValue + p.monthlySalary * 12));
+  const r1 = pickBySlots(elegivel, slots, orcamento, tetoSalarial, p => p.score);
+  const r2 = pickBySlots(elegivel, slots, orcamento, tetoSalarial, p => p.marketValue > 0 ? p.score / (p.marketValue / 1_000_000) : 0);
 
-  return { cenario1, cenario2, cenario3 };
+  const floor = r1.players.length > 0
+    ? (r1.players.reduce((a, p) => a + p.score, 0) / r1.players.length) * 0.35
+    : 50;
+  const eligibleC3 = elegivel.filter(p => p.score >= floor);
+  const r3 = pickBySlots(eligibleC3, slots, orcamento, tetoSalarial, p => -(p.marketValue + p.monthlySalary * 12));
+
+  // Deduplica avisos entre cenários para não repetir a mesma mensagem
+  const todosAvisos = [...new Set([...r1.warnings, ...r2.warnings, ...r3.warnings])];
+
+  return {
+    cenario1: r1.players,
+    cenario2: r2.players,
+    cenario3: r3.players,
+    avisos: todosAvisos,
+  };
 }
 

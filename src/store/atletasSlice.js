@@ -91,43 +91,46 @@ export const atletasSlice = createSlice({
   initialState: atletasAdapter.getInitialState({
     loading: false,
     error: null,
+    status: 'idle',
   }),
-  reducers: {}, 
-  
+  reducers: {
+    resetAtletasStatus: (state) => { state.status = 'idle'; },
+  },
+
   extraReducers: (builder) => {
     builder
       // --- FETCH ---
-      .addCase(fetchAtletas.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(fetchAtletas.fulfilled, (state, action) => { 
-        state.loading = false; 
-        // Substitui o "state.lista = action.payload"
-        atletasAdapter.setAll(state, action.payload); 
+      .addCase(fetchAtletas.pending, (state) => { state.loading = true; state.error = null; state.status = 'loading'; })
+      .addCase(fetchAtletas.fulfilled, (state, action) => {
+        state.loading = false;
+        state.status = 'succeeded';
+        atletasAdapter.setAll(state, action.payload);
       })
-      .addCase(fetchAtletas.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
-      
+      .addCase(fetchAtletas.rejected, (state, action) => { state.loading = false; state.error = action.error.message; state.status = 'failed'; })
+
       // --- CREATE ---
-      .addCase(criarAtleta.pending, (state) => { state.loading = true; })
+      .addCase(criarAtleta.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(criarAtleta.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui o "state.lista.push"
         atletasAdapter.addOne(state, action.payload);
       })
- 
+      .addCase(criarAtleta.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+
       // --- UPDATE ---
-      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(atualizarAtletaMock.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui aquele "findIndex" manual. Muito mais limpo!
         atletasAdapter.updateOne(state, { id: action.payload.id, changes: action.payload });
       })
- 
+      .addCase(atualizarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+
       // --- DELETE ---
-      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(deletarAtletaMock.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui o "state.lista.filter"
         atletasAdapter.removeOne(state, action.payload);
-      });
+      })
+      .addCase(deletarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; });
   },
 });
 
@@ -135,6 +138,8 @@ export const atletasSlice = createSlice({
  * Seletores gerados automaticamente pelo adaptador para consulta direta no estado do Redux.
  * Exibe funções como selectAllAtletas, selectAtletaById e selectAtletaIds.
  */
+export const { resetAtletasStatus } = atletasSlice.actions;
+
 export const {
   selectAll: selectAllAtletas,
   selectById: selectAtletaById,

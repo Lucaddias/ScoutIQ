@@ -302,9 +302,12 @@ export const estatisticasSlice = createSlice({
       })
 
       // --- CREATE ---
+      .addCase(criarEstatistica.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(criarEstatistica.fulfilled, (state, action) => {
+        state.loading = false;
         estatisticasAdapter.addOne(state, action.payload);
       })
+      .addCase(criarEstatistica.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
 
       // --- BULK CREATE ---
       .addCase(criarEstatisticasEmLote.pending, (state) => {

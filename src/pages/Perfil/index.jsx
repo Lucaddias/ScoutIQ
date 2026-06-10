@@ -34,9 +34,15 @@ export default function Perfil() {
   const { user, upgradeRole } = useAuth();
   const role = user?.role || 'user';
 
-  /* handleUpgrade — promove o usuário de 'user' para 'scout' via Supabase (AuthContext). */
+  /* handleUpgrade — promove o próprio usuário de 'user' para 'scout' via Supabase. */
   const handleUpgrade = async () => {
-    await upgradeRole('scout');
+    if (user) {
+      try {
+        await upgradeRole('scout');
+      } catch (err) {
+        console.error('Erro ao fazer upgrade:', err.message);
+      }
+    }
   };
 
   return (

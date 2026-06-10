@@ -17,7 +17,7 @@ const signupSchema = yup.object().shape({
 });
 
 const Login = ({ onNavigate }) => {
-  const { login, signup, loginAsGuest } = useAuth();
+  const { login, signup } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -184,21 +184,7 @@ const Login = ({ onNavigate }) => {
             )}
           </button>
 
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
-            <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '12px' }}>ou</span>
-            <button 
-              type="button" 
-              onClick={() => {
-                const res = loginAsGuest();
-                if (res.success) onNavigate('inicio');
-              }}
-              style={{ background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6', padding: '12px', width: '100%', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              <i className="fa-solid fa-bolt"></i> Acesso Rápido (Demo)
-            </button>
-          </div>
+
         </form>
 
         <div className="login-footer">

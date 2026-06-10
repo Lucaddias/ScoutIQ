@@ -182,6 +182,7 @@ const apoioSlice = createSlice({
   name: 'apoio',
   initialState: {
     cenariosGerados: null,
+    avisos: [],
     loadingSimulacao: false,
     loadingRelatorio: false,
     pacoteSelecionado: null,
@@ -203,17 +204,24 @@ const apoioSlice = createSlice({
     limparSimulacao: (state) => {
       state.cenariosGerados = null;
       state.pacoteSelecionado = null;
+      state.avisos = [];
     }
   },
   extraReducers: (builder) => {
     builder
       // --- SIMULAR CENÁRIOS ---
-      .addCase(simularCenarios.pending, (state) => { 
-        state.loadingSimulacao = true; 
+      .addCase(simularCenarios.pending, (state) => {
+        state.loadingSimulacao = true;
+        state.avisos = [];
       })
       .addCase(simularCenarios.fulfilled, (state, action) => {
         state.loadingSimulacao = false;
-        state.cenariosGerados = action.payload;
+        const { avisos, ...cenarios } = action.payload;
+        state.cenariosGerados = cenarios;
+        state.avisos = avisos || [];
+      })
+      .addCase(simularCenarios.rejected, (state) => {
+        state.loadingSimulacao = false;
       })
       
       // --- SALVAR RELATÓRIO NO BANCO ---
@@ -222,9 +230,12 @@ const apoioSlice = createSlice({
       })
       .addCase(salvarPacoteOficial.fulfilled, (state, action) => {
         state.loadingRelatorio = false;
-        state.pacoteSelecionado = action.payload; 
+        state.pacoteSelecionado = action.payload;
       })
- 
+      .addCase(salvarPacoteOficial.rejected, (state) => {
+        state.loadingRelatorio = false;
+      })
+
       // --- BUSCAR HISTÓRICO DE RELATÓRIOS ---
       .addCase(fetchRelatorios.pending, (state) => { 
         state.loadingHistorico = true; 
