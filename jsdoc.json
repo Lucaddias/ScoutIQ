@@ -1,7 +1,11 @@
 {
-  "plugins": ["plugins/markdown"],
+  "plugins": [
+    "plugins/markdown"
+  ],
   "source": {
-    "include": ["src"],
+    "include": [
+      "src"
+    ],
     "includePattern": ".+\\.js(doc|x)?$",
     "excludePattern": "(^|\\/|\\\\)_"
   },
@@ -18,7 +22,7 @@
     "private": false,
     "removeSource": false,
     "search": true,
-    "commonNav": true
+    "commonNav": false
   },
   "templates": {
     "cleverLinks": false,
