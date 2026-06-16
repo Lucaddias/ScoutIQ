@@ -13,44 +13,32 @@ const POS_COLORS = {
   Goalkeeper: '#8b5cf6',
 };
 
-/* ── Pure-CSS Radar Chart (5 axes, SVG) ── */
+/* ── Radar de Perfil (5 eixos, SVG) ── */
 /**
- * Gráfico radar SVG puro com 5 eixos (Gols, Assistências, Passes, Tackles, Distância).
- * Utilizado dentro do {@link PlayerModal} para visualização de desempenho.
+ * Gráfico radar SVG com 5 eixos, cada um já normalizado em PERCENTIL 0–100 do
+ * jogador frente aos pares da MESMA posição (vem de enrichPlayers → player.radar).
+ * Isso distribui o gráfico de forma justa: acaba com os picos causados por escalas
+ * brutas diferentes (passes nas centenas vs gols nas dezenas). Um jogador mediano
+ * fica num pentágono ~50% em todos os eixos.
  *
  * @component
- * @param {object} props            - Propriedades do componente.
- * @param {object} props.stats      - Objeto com os valores das estatísticas.
- * @param {number} props.stats.goals   - Número de gols.
- * @param {number} props.stats.assists - Número de assistências.
- * @param {number} props.stats.passAcc - Percentual de precisão de passes (0-100).
- * @param {number} props.stats.tackles - Número de tackles.
- * @param {number} props.stats.distKm  - Distância percorrida em km.
- * @param {string} props.color      - Cor do preenchimento do polígono (hex/rgb).
+ * @param {object} props        - Propriedades do componente.
+ * @param {Array<{label: string, value: number}>} props.data - Eixos do radar (value 0-100).
+ * @param {string} props.color  - Cor do preenchimento do polígono (hex/rgb).
  * @returns {React.ReactElement} SVG do radar.
  */
-function RadarChart({ stats, color }) {
-  const axes = [
-    { label: 'Gols',     key: 'goals',     max: 20 },
-    { label: 'Assist.',   key: 'assists',   max: 15 },
-    { label: 'Passes',    key: 'passAcc',   max: 100 },
-    { label: 'Tackles',   key: 'tackles',   max: 250 },
-    { label: 'Distância', key: 'distKm',    max: 300 },
-  ];
-
+function RadarChart({ data, color }) {
   const cx = 100, cy = 100, R = 75;
-  const n = axes.length;
+  const n = data.length;
 
   const point = (i, ratio) => {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     return [cx + R * ratio * Math.cos(angle), cy + R * ratio * Math.sin(angle)];
   };
 
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
-  const dataPoints = axes.map((a, i) => {
-    const val = stats[a.key] ?? 0;
-    return point(i, Math.min(val / a.max, 1));
-  });
+  const dataPoints = data.map((d, i) => point(i, clamp01((Number(d.value) || 0) / 100)));
   const polygon = dataPoints.map(p => p.join(',')).join(' ');
 
   return (
@@ -59,31 +47,49 @@ function RadarChart({ stats, color }) {
       {gridLevels.map(lv => (
         <polygon
           key={lv}
-          points={axes.map((_, i) => point(i, lv).join(',')).join(' ')}
+          points={data.map((_, i) => point(i, lv).join(',')).join(' ')}
           fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"
         />
       ))}
       {/* Axes */}
-      {axes.map((_, i) => {
+      {data.map((_, i) => {
         const [ex, ey] = point(i, 1);
         return <line key={i} x1={cx} y1={cy} x2={ex} y2={ey} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
       })}
       {/* Data fill */}
-      <polygon points={polygon} fill={color + '20'} stroke={color} strokeWidth="2" />
+      <polygon points={polygon} fill={color + '33'} stroke={color} strokeWidth="2" strokeLinejoin="round" />
       {/* Data dots */}
       {dataPoints.map(([px, py], i) => (
         <circle key={i} cx={px} cy={py} r="3" fill={color} />
       ))}
       {/* Labels */}
-      {axes.map((a, i) => {
+      {data.map((d, i) => {
         const [lx, ly] = point(i, 1.22);
         return (
           <text key={i} x={lx} y={ly} textAnchor="middle" dominantBaseline="central"
-            fill="rgba(255,255,255,0.5)" fontSize="8" fontWeight="600">{a.label}</text>
+            fill="rgba(255,255,255,0.5)" fontSize="8" fontWeight="600">{d.label}</text>
         );
       })}
     </svg>
   );
+}
+
+/**
+ * Perfil de radar de reserva, caso o atleta não venha enriquecido (sem player.radar).
+ * Normaliza por-90 contra referências "de elite" e limita a 0–100 — também sem picos.
+ */
+function fallbackRadar(s) {
+  const min = Math.max(Number(s.minutesPlayed) || 0, 1);
+  const p90 = (v) => ((Number(v) || 0) / min) * 90;
+  const passAcc = s.totalPasses > 0 ? (s.accuratePasses / s.totalPasses) * 100 : 0;
+  const norm = (v, ref) => Math.max(0, Math.min(100, (v / ref) * 100));
+  return [
+    { label: 'Gols',      value: norm(p90(s.goals), 0.6) },
+    { label: 'Assist.',   value: norm(p90(s.assists), 0.4) },
+    { label: 'Passes',    value: Math.min(100, passAcc) },
+    { label: 'Defesa',    value: norm(p90((Number(s.tackles) || 0) + (Number(s.interceptions) || 0)), 6) },
+    { label: 'Distância', value: norm(p90(s.distanceCoveredKm), 12) },
+  ];
 }
 
 /* ── Stat Bar ── */
@@ -200,13 +206,17 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
   const gamesPlayed = s.gamesPlayed || 1;
   const distKm = s.distanceCoveredKm || 0;
 
-  const radarStats = {
-    goals:   s.goals || 0,
-    assists: s.assists || 0,
-    passAcc: parseFloat(passAcc),
-    tackles: s.tackles || 0,
-    distKm:  distKm,
-  };
+  // Radar por percentil de posição (vindo de enrichPlayers); fallback se ausente.
+  const r = player.radar;
+  const radarData = r
+    ? [
+        { label: 'Gols',      value: r.gols },
+        { label: 'Assist.',   value: r.assist },
+        { label: 'Passes',    value: r.passe },
+        { label: 'Defesa',    value: r.defesa },
+        { label: 'Distância', value: r.distancia },
+      ]
+    : fallbackRadar(s);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -275,7 +285,7 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
         <div className="modal-body">
           <div className="modal-radar-wrap">
             <h4>Radar de Desempenho</h4>
-            <RadarChart stats={radarStats} color={color} />
+            <RadarChart data={radarData} color={color} />
           </div>
 
           <div className="modal-bars-wrap">
