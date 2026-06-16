@@ -1,3 +1,7 @@
+/**
+ * @file Página de geração e edição de propostas de contrato para atletas.
+ * @module pages/Contratos
+ */
 import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { salvarProposta } from '../../store/apoioSlice';
@@ -29,6 +33,14 @@ function generateProposal(player) {
   };
 }
 
+/**
+ * Página de Contratos (acesso para roles 'scout' e 'admin').
+ * Permite buscar um atleta, visualizar a proposta gerada automaticamente,
+ * editar os termos do contrato e enviar a proposta final ao Redux.
+ *
+ * @component
+ * @returns {React.ReactElement} A página de propostas de contrato.
+ */
 export default function Contratos() {
   const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();

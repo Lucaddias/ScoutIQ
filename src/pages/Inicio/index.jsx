@@ -1,3 +1,7 @@
+/**
+ * @file Página de visão geral da liga com artilheiros, assistentes e gráfico de gols por posição.
+ * @module pages/Inicio
+ */
 import React, { useMemo } from 'react';
 import { useAtletas } from '../../hooks/useAtletas.js';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -35,6 +39,14 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+/**
+ * Página inicial do dashboard. Exibe estatísticas gerais da liga (dados fixos de demonstração),
+ * tabelas de artilheiros e assistentes, e um gráfico de barras dinâmico (Recharts)
+ * mostrando gols por setor de campo calculados a partir dos atletas do Redux.
+ *
+ * @component
+ * @returns {React.ReactElement} A página de visão geral da liga.
+ */
 const Inicio = () => {
   const { atletas, loading } = useAtletas();
 

@@ -1,3 +1,7 @@
+/**
+ * @file Layout principal autenticado. Orquestra sidebar, roteamento de páginas e modais globais.
+ * @module pages/Dashboard
+ */
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import Inicio from '../Inicio/index.jsx';
@@ -32,6 +36,17 @@ const formatBR = (value) => {
   return num.toLocaleString('pt-BR');
 };
 
+/**
+ * Componente raiz do layout autenticado. Renderiza o {@link module:components/Sidebar|Sidebar},
+ * despacha a página correta pelo `page` prop, e gerencia o modal de visualização/edição de atletas.
+ * Controle de acesso por role está centralizado aqui através da função `canAccess`.
+ *
+ * @component
+ * @param {object}   props            - Propriedades do componente.
+ * @param {string}   props.page       - ID da página atual (ex: 'inicio', 'atletas', 'admin').
+ * @param {Function} props.onNavigate - Callback de navegação para mudar de página.
+ * @returns {React.ReactElement} O layout do dashboard com conteúdo dinâmico.
+ */
 const Dashboard = ({ page, onNavigate }) => {
   const { user } = useAuth();
   const role = user?.role || 'user';

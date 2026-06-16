@@ -1,3 +1,7 @@
+/**
+ * @file Barra lateral de navegação principal da aplicação.
+ * @module components/Sidebar
+ */
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Sidebar.css';
@@ -17,6 +21,11 @@ const GERENCIAR_SUB = [
   { id: 'admin_jogadores', icon: 'fa-user-plus',  label: 'Adicionar Jogador', color: '#10b981' },
 ];
 
+/**
+ * Itens de navegação disponíveis no sidebar.
+ * Cada item define quais roles (papéis) têm acesso àquela rota.
+ * @constant {Array<{id: string, icon: string, label: string, roles: string[]}>}
+ */
 const NAV_ITEMS = [
   { id: 'inicio',        icon: 'fa-house',          label: 'Início',          roles: ['user', 'scout', 'admin'] },
   { id: 'apoio_decisao', icon: 'fa-brain',           label: 'Apoio à Decisão', roles: ['user', 'scout', 'admin'] },
@@ -33,6 +42,18 @@ const GERENCIAR_IDS  = GERENCIAR_SUB.map(s => s.id);
 // Mapeia subKey → lista de sub-itens
 const SUB_MAP = { relatorios: RELATORIOS_SUB, admin: GERENCIAR_SUB };
 
+/**
+ * Barra lateral de navegação da aplicação. Filtra os itens do menu com base no role
+ * do usuário logado e exibe botões de perfil e logout na parte inferior.
+ * Em dispositivos móveis é controlada pela prop `isOpen`.
+ *
+ * @component
+ * @param {object}   props            - Propriedades do componente.
+ * @param {string}   props.page       - ID da página ativa para destacar o item correto.
+ * @param {Function} props.onNavigate - Callback de navegação que recebe o ID da página destino.
+ * @param {boolean}  props.isOpen     - Controla a visibilidade no mobile (adiciona classe CSS).
+ * @returns {React.ReactElement} A barra lateral renderizada.
+ */
 export default function Sidebar({ page, onNavigate, isOpen }) {
   const { user, logout } = useAuth();
   const role = user?.role || 'user';

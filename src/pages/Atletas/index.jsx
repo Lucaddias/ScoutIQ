@@ -1,3 +1,7 @@
+/**
+ * @file Listagem paginada e filtrada de atletas com modal de cadastro.
+ * @module pages/Atletas
+ */
 import React, { useState, useMemo, useReducer } from 'react';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
@@ -44,6 +48,17 @@ const initialFilterState = {
   page: 1,
 };
 
+/**
+ * Página de listagem de atletas. Suporta filtragem por nome, posição, clube e ordenação,
+ * com paginação de 12 cards por página. Inclui modal inline de cadastro de novos atletas.
+ * Busca e enriquece os dados via Redux (fetchAtletas + enrichPlayers).
+ *
+ * @component
+ * @param {object}   props                  - Propriedades do componente.
+ * @param {Function} [props.onPlayerClick]  - Callback ao clicar em um PlayerCard (recebe o player).
+ * @param {string}   [props.initialPosition] - Posição inicial do filtro de posição.
+ * @returns {React.ReactElement} A página de atletas renderizada.
+ */
 export default function Atletas({ onPlayerClick, initialPosition }) {
   // Leitura do store via hook compartilhado (fetch automático quando idle)
   const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
