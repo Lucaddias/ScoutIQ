@@ -1,6 +1,20 @@
+/**
+ * @file Landing page pública do ScoutIQ exibida antes do login.
+ * @module pages/PreLogin
+ */
 import React, { useEffect } from 'react';
 import './PreLogin.css';
 
+/**
+ * Página de pré-login (landing page pública). Exibe a proposta de valor do ScoutIQ
+ * com elementos gráficos animados de fundo (campo de futebol, radar chart, gráficos SVG)
+ * e um botão de acesso que navega para a página de login.
+ *
+ * @component
+ * @param {object}   props            - Propriedades do componente.
+ * @param {Function} props.onNavigate - Callback de navegação (recebe 'login' como argumento).
+ * @returns {React.ReactElement} A landing page pública renderizada.
+ */
 const PreLogin = ({ onNavigate }) => {
   return (
     <div className="prelogin-page">

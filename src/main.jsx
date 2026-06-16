@@ -1,3 +1,9 @@
+/**
+ * @file Ponto de entrada principal da aplicação ScoutIQ.
+ * @module main
+ * @description Inicializa o React, envolve a aplicação com o Provider do Redux
+ * (injetando o store global) e monta o componente raiz {@link module:App} no DOM.
+ */
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'

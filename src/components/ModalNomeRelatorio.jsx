@@ -1,6 +1,21 @@
+/**
+ * @file Modal para nomear um relatório antes de salvá-lo.
+ * @module components/ModalNomeRelatorio
+ */
 import React, { useState } from 'react';
 import './ModalNomeRelatorio.css';
 
+/**
+ * Modal de diálogo para que o usuário forneça um nome antes de gerar um relatório oficial.
+ * Substitui o uso de `window.prompt`, oferecendo uma experiência visual mais refinada.
+ *
+ * @component
+ * @param {object}   props           - Propriedades do componente.
+ * @param {boolean}  props.isOpen    - Controla a visibilidade do modal. Se `false`, retorna `null`.
+ * @param {Function} props.onClose   - Callback chamado ao fechar sem confirmar (botão Cancelar ou X).
+ * @param {Function} props.onConfirm - Callback chamado com o nome digitado ao confirmar.
+ * @returns {React.ReactElement|null} O modal renderizado ou `null` se fechado.
+ */
 export default function ModalNomeRelatorio({ isOpen, onClose, onConfirm }) {
   const [nome, setNome] = useState('');
 

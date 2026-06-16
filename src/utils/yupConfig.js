@@ -1,3 +1,14 @@
+/**
+ * @file Configuração global do Yup com mensagens de validação em português.
+ * @module utils/yupConfig
+ * @description Sobrescreve o locale padrão do Yup com mensagens de erro amigáveis
+ * em PT-BR. Deve ser importado antes de qualquer schema de validação para que
+ * as mensagens sejam aplicadas globalmente em toda a aplicação.
+ *
+ * @example
+ * import yup from '../../utils/yupConfig.js';
+ * const schema = yup.object().shape({ nome: yup.string().required() });
+ */
 import * as yup from 'yup';
 
 yup.setLocale({

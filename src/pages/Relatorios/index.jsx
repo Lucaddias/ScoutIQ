@@ -1,3 +1,7 @@
+/**
+ * @file Página de histórico de relatórios de elenco e propostas de contrato.
+ * @module pages/Relatorios
+ */
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchRelatorios, deletarRelatorio, selecionarPacoteOficial, renomearRelatorio, fetchPropostas, deletarProposta } from '../../store/apoioSlice';
@@ -5,6 +9,16 @@ import PlayerCard from '../../components/PlayerCard.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Relatorios.css';
 
+/**
+ * Página de Relatórios. Gerencia três telas distintas:
+ * 1. **Lista (histórico)** — exibe relatórios oficiais e propostas salvas com busca e filtro.
+ * 2. **Ofício aberto** — exibe o documento completo de um relatório de elenco selecionado.
+ * 3. **Proposta aberta** — exibe os detalhes de uma proposta de contrato selecionada.
+ * Ambos os documentos podem ser impressos/exportados como PDF via `window.print()`.
+ *
+ * @component
+ * @returns {React.ReactElement} A página de relatórios renderizada.
+ */
 export default function Relatorios() {
   const dispatch = useDispatch();
   const [propostaSelecionada, setPropostaSelecionada] = useState(null);

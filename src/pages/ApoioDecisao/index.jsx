@@ -1,3 +1,7 @@
+/**
+ * @file Simulador de contratações com três cenários (Performance, ROI, Conservador).
+ * @module pages/ApoioDecisao
+ */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; 
@@ -23,6 +27,16 @@ const POSITIONS = [
   { val: 'GOL', db: 'Goalkeeper', label: 'Goleiro (GOL)' },
 ];
 
+/**
+ * Página de Apoio à Decisão. Permite ao usuário configurar orçamento, teto salarial
+ * e vagas por posição para gerar 3 cenários de contratação via algoritmo.
+ * O cenário ativo pode ser exportado como relatório oficial nomeado pelo usuário.
+ *
+ * @component
+ * @param {object}   props            - Propriedades do componente.
+ * @param {Function} props.onNavigate - Callback de navegação usado após salvar relatório.
+ * @returns {React.ReactElement} A página do simulador de contratações.
+ */
 export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 

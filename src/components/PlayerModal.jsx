@@ -1,3 +1,7 @@
+/**
+ * @file Modal de detalhes completos de um atleta com radar chart e barras de estatística.
+ * @module components/PlayerModal
+ */
 import React from 'react';
 import { formatBRL, positionLabel, positionFullLabel } from '../utils/formatters.js';
 import './PlayerModal.css';
@@ -10,6 +14,21 @@ const POS_COLORS = {
 };
 
 /* ── Pure-CSS Radar Chart (5 axes, SVG) ── */
+/**
+ * Gráfico radar SVG puro com 5 eixos (Gols, Assistências, Passes, Tackles, Distância).
+ * Utilizado dentro do {@link PlayerModal} para visualização de desempenho.
+ *
+ * @component
+ * @param {object} props            - Propriedades do componente.
+ * @param {object} props.stats      - Objeto com os valores das estatísticas.
+ * @param {number} props.stats.goals   - Número de gols.
+ * @param {number} props.stats.assists - Número de assistências.
+ * @param {number} props.stats.passAcc - Percentual de precisão de passes (0-100).
+ * @param {number} props.stats.tackles - Número de tackles.
+ * @param {number} props.stats.distKm  - Distância percorrida em km.
+ * @param {string} props.color      - Cor do preenchimento do polígono (hex/rgb).
+ * @returns {React.ReactElement} SVG do radar.
+ */
 function RadarChart({ stats, color }) {
   const axes = [
     { label: 'Gols',     key: 'goals',     max: 20 },
@@ -68,6 +87,22 @@ function RadarChart({ stats, color }) {
 }
 
 /* ── Stat Bar ── */
+/**
+ * Barra de progresso horizontal para uma estatística individual.
+ * Quando `isAdmin` é `true` e `onStatEdit` está disponível, exibe um botão de edição inline.
+ *
+ * @component
+ * @param {object}   props             - Propriedades do componente.
+ * @param {string}   props.label       - Rótulo legível da estatística.
+ * @param {number}   props.value       - Valor atual da estatística.
+ * @param {number}   props.max         - Valor máximo para cálculo da porcentagem.
+ * @param {string}   [props.unit]      - Unidade exibida após o valor (ex: '%', 'km').
+ * @param {string}   props.color       - Cor da barra de preenchimento.
+ * @param {string}   props.statKey     - Chave da estatística no objeto `statistics` do atleta.
+ * @param {boolean}  [props.isAdmin]   - Se `true`, exibe o botão de edição.
+ * @param {Function} [props.onStatEdit] - Callback ao salvar edição: `(statKey, novoValor, valorAntigo) => Promise`.
+ * @returns {React.ReactElement} A barra de estatística renderizada.
+ */
 function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit }) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
@@ -141,6 +176,21 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
   );
 }
 
+/**
+ * Modal de detalhes completos de um atleta. Exibe header com foto e score,
+ * dados financeiros, radar chart de 5 eixos e barras de estatísticas detail.
+ * Admins podem editar estatísticas individualmente via {@link StatBar}.
+ *
+ * @component
+ * @param {object}   props             - Propriedades do componente.
+ * @param {object|null} props.player   - Objeto do atleta a exibir. Se `null`, retorna `null`.
+ * @param {Function} props.onClose     - Callback ao fechar o modal.
+ * @param {Function} [props.onEdit]    - Callback para editar o atleta (recebe player).
+ * @param {Function} [props.onDelete]  - Callback para excluir o atleta (recebe player).
+ * @param {boolean}  [props.isAdmin]   - Habilita edição de estatísticas.
+ * @param {Function} [props.onStatEdit] - Callback para salvar ajuste de stat: `(player, statKey, novoValor, valorAntigo) => Promise`.
+ * @returns {React.ReactElement|null} O modal renderizado ou `null`.
+ */
 export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin, onStatEdit }) {
   if (!player) return null;
 

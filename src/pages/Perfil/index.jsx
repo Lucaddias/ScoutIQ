@@ -1,3 +1,7 @@
+/**
+ * @file Página de perfil do usuário com exibição de permissões e upgrade de role.
+ * @module pages/Perfil
+ */
 import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import './Perfil.css';
@@ -26,6 +30,14 @@ const ROLE_PERKS = {
   ],
 };
 
+/**
+ * Página de Perfil do usuário autenticado. Exibe nome, email, role atual e lista
+ * de permissões correspondentes. Usuários com role 'user' podem solicitar upgrade
+ * para 'scout'. Admins e scouts vêem mensagens de confirmação de seus níveis de acesso.
+ *
+ * @component
+ * @returns {React.ReactElement} A página de perfil renderizada.
+ */
 export default function Perfil() {
   /*
    * Lê o usuário logado e a função upgradeRole do AuthContext.

@@ -1,7 +1,15 @@
+/**
+ * @file Cartão visual compacto para exibição de um atleta.
+ * @module components/PlayerCard
+ */
 import React from 'react';
 import { formatBRL, positionLabel, positionFullLabel } from '../utils/formatters.js';
 import './PlayerCard.css';
 
+/**
+ * Mapa de cores por posição para o badge do cartão.
+ * @constant {Object.<string,string>}
+ */
 const POSITION_COLORS = {
   Forward:    '#f59e0b',
   Midfielder: '#3b82f6',
@@ -9,6 +17,25 @@ const POSITION_COLORS = {
   Goalkeeper: '#8b5cf6',
 };
 
+/**
+ * Cartão visual compacto de um atleta exibindo avatar, nome, posição,
+ * clube, valores financeiros e score de desempenho.
+ * Quando a foto não carrega, exibe um fallback com a inicial do nome.
+ *
+ * @component
+ * @param {object}   props          - Propriedades do componente.
+ * @param {object}   props.player   - Objeto com os dados do atleta.
+ * @param {string}   props.player.name             - Nome completo do atleta.
+ * @param {string}   props.player.position         - Posição em inglês (ex: 'Forward').
+ * @param {string}   [props.player.team]           - Nome do clube.
+ * @param {number}   [props.player.age]            - Idade do atleta.
+ * @param {string}   [props.player.profileImageURL] - URL da foto de perfil.
+ * @param {number}   props.player.marketValue      - Valor de mercado em reais.
+ * @param {number}   props.player.monthlySalary    - Salário mensal em reais.
+ * @param {number}   props.player.score            - Score de desempenho calculado.
+ * @param {Function} [props.onClick] - Callback ao clicar no cartão (recebe o objeto player).
+ * @returns {React.ReactElement} O cartão renderizado.
+ */
 export default function PlayerCard({ player, onClick }) {
   const color = POSITION_COLORS[player.position] || '#6b7a99';
   const posShort = positionLabel(player.position);

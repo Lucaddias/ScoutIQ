@@ -1,3 +1,7 @@
+/**
+ * @file Página de autenticação com suporte a login, cadastro e acesso rápido (demo).
+ * @module pages/Login
+ */
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useForm } from 'react-hook-form';
@@ -16,6 +20,17 @@ const signupSchema = yup.object().shape({
   password: yup.string().min(6).required(),
 });
 
+/**
+ * Página de autenticação unificada. Alterna entre os modos Login e Cadastro
+ * usando o mesmo formulário, valida via Yup + react-hook-form e chama o
+ * {@link module:context/AuthContext|AuthContext} para persistência no Supabase.
+ * Inclui um botão de acesso rápido (demo) que autentica sem credenciais.
+ *
+ * @component
+ * @param {object}   props            - Propriedades do componente.
+ * @param {Function} props.onNavigate - Callback de navegação chamado após login bem-sucedido.
+ * @returns {React.ReactElement} A página de login renderizada.
+ */
 const Login = ({ onNavigate }) => {
   const { login, signup, loginAsGuest } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);

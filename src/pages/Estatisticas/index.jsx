@@ -1,3 +1,7 @@
+/**
+ * @file Página de estatísticas com visão por posição, rankings e CRUD de registros (admin).
+ * @module pages/Estatisticas
+ */
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { enrichPlayers } from '../../utils/playerScore.js';
@@ -48,6 +52,17 @@ const getStatKeys = () => {
   return first ? Object.keys(first.statistics) : [];
 };
 
+/**
+ * Página de Estatísticas. Exibe sumário geral, cards por posição (expansíveis),
+ * rankings de goleadores/assistentes/score e uma tabela CRUD de registros de
+ * estatísticas. Administradores podem criar, editar e excluir registros;
+ * demais roles têm acesso somente leitura.
+ *
+ * @component
+ * @param {object}   props               - Propriedades do componente.
+ * @param {Function} [props.onPlayerClick] - Callback ao clicar em um PlayerCard nos rankings.
+ * @returns {React.ReactElement} A página de estatísticas renderizada.
+ */
 export default function Estatisticas({ onPlayerClick }) {
   const { user } = useAuth();
   const role = user?.role || 'user';

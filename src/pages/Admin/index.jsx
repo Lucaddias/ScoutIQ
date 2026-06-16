@@ -1,3 +1,7 @@
+/**
+ * @file Painel administrativo para gerenciamento de usuários e cadastro de novos jogadores.
+ * @module pages/Admin
+ */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 // 1. IMPORT NOVO ADICIONADO AQUI:
@@ -21,6 +25,15 @@ const jogadorSchema = yup.object().shape({
   monthlySalary: yup.number().transform((value) => (Number.isNaN(value) ? undefined : value)).notRequired(),
 });
 
+/**
+ * Painel administrativo (acesso exclusivo ao role 'admin').
+ * Permite alterar o papel (role) de qualquer usuário cadastrado e
+ * adicionar novos atletas ao sistema via formulário validado com Yup.
+ * O formulário de jogador usa `react-hook-form` com schema `jogadorSchema`.
+ *
+ * @component
+ * @returns {React.ReactElement} O painel administrativo renderizado.
+ */
 export default function AdminPage() {
   // 2. LEITURA DO REDUX CORRIGIDA AQUI:
   const lista = useSelector(selectAllAtletas);
