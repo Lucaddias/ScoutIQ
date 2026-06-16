@@ -1,10 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// vi.mock intercepta o módulo pelo caminho que o SLICE enxerga em tempo de import.
-// atletasSlice.js está em src/store/ e faz: import { supabase } from '../services/supabase.js'
-// O Vitest resolve o mock pelo caminho absoluto, então usamos o alias relativo ao arquivo que faz o import.
-// A forma mais confiável é mockar pelo caminho relativo ao arquivo de teste que leva ao mesmo módulo resolvido.
-vi.mock('../services/supabase.js', () => ({
+// vi.mock intercepta o módulo pelo caminho resolvido — o mesmo que o slice importa.
+vi.mock('../lib/supabase.js', () => ({
   supabase: {
     auth: { getUser: vi.fn() },
     from: vi.fn(() => ({

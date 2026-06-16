@@ -67,6 +67,23 @@ describe('enrichPlayers', () => {
     expect(result).toEqual([]);
   });
 
+  it('incomplete_stats_no_nan: atleta com stats incompletas (criado pelo Admin) não gera NaN nem contamina o pool', () => {
+    // Jogador criado pelo formulário Admin: só goals e assists, sem tackles/distanceCoveredKm/minutesPlayed
+    const incompleto = {
+      id: 'novo1',
+      name: 'Recém Cadastrado',
+      position: 'Forward',
+      statistics: { goals: 0, assists: 0 },
+    };
+    const result = enrichPlayers([incompleto, makeOutfield(), makeGK()]);
+
+    result.forEach(p => {
+      expect(Number.isNaN(p.score)).toBe(false);
+      expect(p.score).toBeGreaterThanOrEqual(0);
+      expect(p.score).toBeLessThanOrEqual(100);
+    });
+  });
+
   it('normalized_scores: com múltiplos jogadores todos os scores ficam entre 0 e 100', () => {
     const players = [
       makeGK({ id: 'gk1' }),

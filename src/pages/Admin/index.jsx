@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas, criarAtleta, resetAtletasStatus, selectAllAtletas } from '../../store/atletasSlice';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { criarAtleta } from '../../store/atletasSlice';
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -21,15 +23,8 @@ const jogadorSchema = yup.object().shape({
 });
 
 export default function AdminPage({ filtroInicial }) {
-  const lista = useSelector(selectAllAtletas);
-  const loading = useSelector((state) => state.atletas.loading);
-  const status  = useSelector((state) => state.atletas.status);
-  const error   = useSelector((state) => state.atletas.error);
+  const { atletas: lista, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (status === 'idle') dispatch(fetchAtletas());
-  }, [dispatch, status]);
 
   const { allUsers, setUserRole, user: currentUser } = useAuth();
 
@@ -81,30 +76,8 @@ export default function AdminPage({ filtroInicial }) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
-        <h2>Carregando dados...</h2>
-      </div>
-    );
-  }
-
-  if (status === 'failed') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8', gap: '16px' }}>
-        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '40px', color: '#f87171' }}></i>
-        <h2 style={{ color: '#f1f5f9', margin: 0 }}>Erro ao carregar atletas</h2>
-        <p style={{ margin: 0, fontSize: '14px' }}>{error || 'Verifique sua conexão e tente novamente.'}</p>
-        <button
-          onClick={() => dispatch(resetAtletasStatus())}
-          style={{ padding: '10px 24px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-        >
-          <i className="fa-solid fa-rotate-right" style={{ marginRight: '8px' }}></i>Tentar novamente
-        </button>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
+  if (status === 'failed') return <ErrorState error={error} onRetry={retry} />;
 
   // Flags de visibilidade das seções
   const showPerfis   = !filtroInicial || filtroInicial === 'perfis';

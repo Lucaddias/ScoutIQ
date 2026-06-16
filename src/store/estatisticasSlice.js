@@ -329,10 +329,16 @@ export const estatisticasSlice = createSlice({
           changes: action.payload,
         });
       })
+      .addCase(atualizarEstatistica.rejected, (state, action) => {
+        state.error = action.error.message;
+      })
 
       // --- DELETE ---
       .addCase(deletarEstatistica.fulfilled, (state, action) => {
         estatisticasAdapter.removeOne(state, action.payload);
+      })
+      .addCase(deletarEstatistica.rejected, (state, action) => {
+        state.error = action.error.message;
       })
 
       // --- AJUSTE DIRETO ---
@@ -340,6 +346,9 @@ export const estatisticasSlice = createSlice({
         if (action.payload) {
           estatisticasAdapter.addOne(state, action.payload);
         }
+      })
+      .addCase(ajustarStatAtleta.rejected, (state, action) => {
+        state.error = action.error.message;
       });
   },
 });

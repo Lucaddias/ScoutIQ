@@ -85,8 +85,11 @@ const Login = ({ onNavigate }) => {
     if (msg.includes('Email not confirmed')) return 'Confirme seu email antes de fazer login.';
     if (msg.includes('User already registered')) return 'Este email já está cadastrado. Faça login.';
     if (msg.includes('Password should be')) return 'A senha deve ter pelo menos 6 caracteres.';
-    if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um momento.';
+    if (msg.includes('rate limit') || msg.includes('Request rate limit')) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
     if (msg.includes('Unable to validate email')) return 'Endereço de email inválido.';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')) {
+      return 'Falha ao conectar ao servidor. Verifique sua internet (ou alguma extensão/adblock bloqueando) e aguarde alguns minutos — pode ser limite de tentativas.';
+    }
     return msg;
   };
 

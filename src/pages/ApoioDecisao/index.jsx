@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas, resetAtletasStatus, selectAllAtletas } from '../../store/atletasSlice';
-import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice'; 
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
+import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
@@ -26,18 +27,11 @@ const POSITIONS = [
 export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 
-  // 1. Lendo os atletas com o Entity Adapter
-  const jogadoresDoBanco = useSelector(selectAllAtletas);
-  const loadingAtletas   = useSelector((state) => state.atletas.loading);
-  const atletasStatus    = useSelector((state) => state.atletas.status);
-  const atletasError     = useSelector((state) => state.atletas.error);
+  // 1. Lendo os atletas via hook compartilhado (fetch automático quando idle)
+  const { atletas: jogadoresDoBanco, loading: loadingAtletas, status: atletasStatus, error: atletasError, retry } = useAtletas();
 
   // 2. Lendo as simulações direto da gaveta de apoio
   const { cenariosGerados, loadingSimulacao, avisos } = useSelector((state) => state.apoio);
-
-  useEffect(() => {
-    if (atletasStatus === 'idle') dispatch(fetchAtletas());
-  }, [dispatch, atletasStatus]);
 
   const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
@@ -134,30 +128,8 @@ export default function ApoioDecisao({ onNavigate }) {
   const investimentoTotal = pacoteAtivo.reduce((a, p) => a + p.marketValue, 0);
   const folhaCalculada = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
 
-  if (loadingAtletas) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
-        <h2>Carregando atletas...</h2>
-      </div>
-    );
-  }
-
-  if (atletasStatus === 'failed') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8', gap: '16px' }}>
-        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '40px', color: '#f87171' }}></i>
-        <h2 style={{ color: '#f1f5f9', margin: 0 }}>Erro ao carregar atletas</h2>
-        <p style={{ margin: 0, fontSize: '14px' }}>{atletasError || 'Verifique sua conexão e tente novamente.'}</p>
-        <button
-          onClick={() => dispatch(resetAtletasStatus())}
-          style={{ padding: '10px 24px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-        >
-          <i className="fa-solid fa-rotate-right" style={{ marginRight: '8px' }}></i>Tentar novamente
-        </button>
-      </div>
-    );
-  }
+  if (loadingAtletas) return <LoadingState message="Carregando atletas..." />;
+  if (atletasStatus === 'failed') return <ErrorState error={atletasError} onRetry={retry} />;
 
   return (
     <div className="apoio-decisao-page">

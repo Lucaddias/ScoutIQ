@@ -5,7 +5,7 @@
  */
 
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-import { supabase } from '../services/supabase.js';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Thunk assíncrono para buscar todos os atletas do servidor.

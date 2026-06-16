@@ -12,19 +12,12 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useDispatch } from 'react-redux';
 import { atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
 import { ajustarStatAtleta } from '../../store/estatisticasSlice';
+import { TIMES_BR } from '../../utils/constants.js';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import './Dashboard.css';
 
 const POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
-
-const TIMES_BR = [
-  'América-MG', 'Athletico-PR', 'Atlético-GO', 'Atlético-MG', 'Avaí', 'Bahia',
-  'Botafogo', 'Ceará', 'Chapecoense', 'Corinthians', 'Coritiba', 'Cuiabá',
-  'Cruzeiro', 'Flamengo', 'Fluminense', 'Fortaleza', 'Goiás', 'Grêmio',
-  'Internacional', 'Juventude', 'Mirassol', 'Palmeiras', 'Red Bull Bragantino',
-  'Remo', 'Santos', 'São Paulo', 'Vasco da Gama', 'Vitória',
-];
 
 const inputStyle = {
   padding: '10px 12px', borderRadius: '6px',
@@ -37,11 +30,6 @@ const formatBR = (value) => {
   if (!value && value !== 0) return '';
   if (isNaN(num)) return String(value);
   return num.toLocaleString('pt-BR');
-};
-
-const parseBR = (str) => {
-  if (!str) return 0;
-  return Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
 };
 
 const Dashboard = ({ page, onNavigate }) => {

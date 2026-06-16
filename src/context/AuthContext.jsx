@@ -65,6 +65,13 @@ export function AuthProvider({ children }) {
    * Inicializa a sessão ao montar e escuta eventos de autenticação.
    * Usa apenas onAuthStateChange (Supabase v2 dispara INITIAL_SESSION imediatamente),
    * evitando a dupla chamada paralela que dobrava o tempo de carregamento.
+   *
+   * IMPORTANTE: o callback NÃO pode ser async nem dar `await` em outras chamadas
+   * do Supabase. O auth-js segura um lock interno enquanto dispara o evento; awaitar
+   * uma query (ex.: profiles) dentro do callback exige o mesmo lock → deadlock, que
+   * trava o signInWithPassword (botão fica em "Aguarde..." para sempre).
+   * Por isso, o trabalho pesado (buildSession/loadAllUsers) é adiado com setTimeout(0),
+   * executando fora do lock. Ref: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
    */
   useEffect(() => {
     let settled = false;
@@ -76,23 +83,34 @@ export function AuthProvider({ children }) {
     const safetyTimer = setTimeout(finish, 5000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        try {
-          if (session?.user) {
-            const s = await buildSession(session.user);
-            setUser(s);
-            // Carrega lista de usuários apenas para admins (evita query desnecessária)
-            if (s?.role === 'admin') await loadAllUsers();
-          } else {
-            setUser(null);
-            setAllUsers([]);
-          }
-        } catch (err) {
-          console.error('Erro ao processar evento de autenticação:', err);
-        } finally {
-          clearTimeout(safetyTimer);
-          finish();
+      (_event, session) => {
+        if (session?.user) {
+          // Sessão rápida síncrona via JWT metadata (não bloqueia o lock do auth-js).
+          const meta = session.user.user_metadata || {};
+          setUser({
+            id:    session.user.id,
+            email: session.user.email,
+            name:  meta.name || session.user.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'Usuário',
+            role:  meta.role || 'user',
+          });
+
+          // Trabalho pesado adiado para FORA do lock — busca a role real em profiles.
+          setTimeout(async () => {
+            try {
+              const s = await buildSession(session.user);
+              if (s) setUser(s);
+              if (s?.role === 'admin') await loadAllUsers();
+            } catch (err) {
+              console.error('Erro ao processar evento de autenticação:', err);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+          setAllUsers([]);
         }
+
+        clearTimeout(safetyTimer);
+        finish();
       }
     );
 
@@ -101,15 +119,25 @@ export function AuthProvider({ children }) {
 
   /**
    * Autentica um usuário usando e-mail e senha via Supabase Auth.
+   * Usa metadados do JWT para sessão imediata; onAuthStateChange busca a role
+   * real da tabela profiles em background sem bloquear a navegação.
    */
   const login = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { success: false, error: error.message };
-      const session = await buildSession(data.user);
-      setUser(session);
-      if (session?.role === 'admin') await loadAllUsers();
-      return { success: true, user: session };
+      // Sessão rápida via JWT metadata — evita round-trip extra ao banco
+      const u = data.user;
+      const meta = u.user_metadata || {};
+      const quickSession = {
+        id:    u.id,
+        email: u.email,
+        name:  meta.name || u.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+        role:  meta.role || 'user',
+      };
+      setUser(quickSession);
+      // onAuthStateChange dispara em background e atualiza a role real via profiles
+      return { success: true, user: quickSession };
     } catch {
       return { success: false, error: 'Erro de conexão. Tente novamente.' };
     }
@@ -120,22 +148,22 @@ export function AuthProvider({ children }) {
    */
   const signup = async (email, password, name) => {
     try {
+      const displayName = name || email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            name: name || email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-            role: 'user',
-          },
-        },
+        options: { data: { name: displayName, role: 'user' } },
       });
       if (error) return { success: false, error: error.message };
       if (data.user) {
-        const session = await buildSession(data.user);
-        setUser(session);
-        if (session?.role === 'admin') await loadAllUsers();
-        return { success: true, user: session };
+        const quickSession = {
+          id:    data.user.id,
+          email: data.user.email,
+          name:  displayName,
+          role:  'user',
+        };
+        setUser(quickSession);
+        return { success: true, user: quickSession };
       }
       return { success: true, needsConfirmation: true };
     } catch {
@@ -145,9 +173,25 @@ export function AuthProvider({ children }) {
 
   /**
    * Encerra a sessão ativa.
+   *
+   * Tenta revogar a sessão no servidor, mas NÃO deixa uma falha de rede
+   * (ex.: "Failed to fetch") impedir o logout local. Sem essa garantia, o
+   * supabase-js retorna o erro sem remover a sessão do localStorage, então
+   * a UI volta ao login mas o F5 restaura a sessão antiga (usuário "preso").
    */
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) throw error;
+    } catch (err) {
+      console.warn('signOut no servidor falhou; limpando sessão localmente.', err);
+      // Fallback offline: remove a sessão persistida do supabase-js do localStorage.
+      try {
+        Object.keys(window.localStorage)
+          .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+          .forEach((k) => window.localStorage.removeItem(k));
+      } catch { /* ambiente sem localStorage */ }
+    }
     setUser(null);
     setAllUsers([]);
   };

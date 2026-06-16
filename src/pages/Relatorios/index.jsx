@@ -9,15 +9,16 @@ export default function Relatorios({ filtroInicial }) {
   const dispatch = useDispatch();
   const [propostaSelecionada, setPropostaSelecionada] = useState(null);
   const [search, setSearch] = useState('');
-  const [filtro, setFiltro] = useState(filtroInicial || 'todos');
 
-  // Puxamos tudo que precisamos da nossa gaveta de apoio
+  // Determina permanentemente qual seção esta instância exibe
+  const modo = filtroInicial || 'relatorios';
+
   const { pacoteSelecionado, historicoRelatorios, loadingHistorico, propostas, loadingPropostas } = useSelector((state) => state.apoio);
 
   useEffect(() => {
-    dispatch(fetchRelatorios());
-    dispatch(fetchPropostas());
-  }, [dispatch]);
+    if (modo === 'relatorios') dispatch(fetchRelatorios());
+    else dispatch(fetchPropostas());
+  }, [dispatch, modo]);
 
   // Função para fechar o PDF e voltar para a lista de histórico
   const handleVoltar = () => {
@@ -205,29 +206,27 @@ export default function Relatorios({ filtroInicial }) {
     (r.nome || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const mostrarPropostas  = filtro !== 'relatorios';
-  const mostrarRelatorios = filtro !== 'propostas';
-  const totalResultados   = (mostrarPropostas ? propostasFiltradas.length : 0) + (mostrarRelatorios ? relatoriosFiltrados.length : 0);
+  const mostrarPropostas  = modo === 'propostas';
+  const mostrarRelatorios = modo === 'relatorios';
+  const totalResultados   = mostrarPropostas ? propostasFiltradas.length : relatoriosFiltrados.length;
 
   return (
     <div className="relatorios-page">
       <div className="relatorios-header">
         <h1>
-          <i className={`fa-solid ${filtro === 'propostas' ? 'fa-file-signature' : 'fa-folder-open'}`}></i>
-          {' '}{filtro === 'propostas' ? 'Propostas de Contratos' : filtro === 'relatorios' ? 'Relatórios de Elenco' : 'Histórico de Relatórios'}
+          <i className={`fa-solid ${mostrarPropostas ? 'fa-file-signature' : 'fa-folder-open'}`}></i>
+          {' '}{mostrarPropostas ? 'Propostas de Contratos' : 'Relatórios de Elenco'}
         </h1>
         <p>
-          {filtro === 'propostas'
+          {mostrarPropostas
             ? 'Todas as propostas de contrato geradas pelo sistema.'
-            : filtro === 'relatorios'
-            ? 'Todos os relatórios de elenco gerados pelo Apoio à Decisão.'
-            : 'Acesse todos os ofícios gerados anteriormente pelo simulador.'}
+            : 'Todos os relatórios de elenco gerados pelo Apoio à Decisão.'}
         </p>
       </div>
 
-      {/* ── BARRA DE BUSCA E FILTRO ── */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+      {/* ── BARRA DE BUSCA ── */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '28px', alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
           <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '13px' }}></i>
           <input
             type="text"
@@ -236,17 +235,6 @@ export default function Relatorios({ filtroInicial }) {
             onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 38px', borderRadius: '8px', border: '1px solid #1e293b', background: '#0f172a', color: '#f8fafc', fontSize: '14px', outline: 'none' }}
           />
-        </div>
-        <div style={{ display: 'flex', background: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
-          {[
-            { value: 'todos',      label: 'Todos' },
-            { value: 'propostas',  label: 'Propostas' },
-            { value: 'relatorios', label: 'Relatórios' },
-          ].map(op => (
-            <button key={op.value} onClick={() => setFiltro(op.value)} style={{ padding: '10px 18px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, transition: 'all 0.2s', background: filtro === op.value ? '#3b82f6' : 'transparent', color: filtro === op.value ? 'white' : '#64748b' }}>
-              {op.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -259,15 +247,21 @@ export default function Relatorios({ filtroInicial }) {
       )}
 
       {/* ── SEÇÃO DE PROPOSTAS DE CONTRATO ── */}
-      {mostrarPropostas && (loadingPropostas || propostasFiltradas.length > 0) && (
+      {mostrarPropostas && (
         <div style={{ marginBottom: '40px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <i className="fa-solid fa-file-signature" style={{ color: '#14b8a6' }}></i> Propostas de Contrato
+            <i className="fa-solid fa-file-signature" style={{ color: '#14b8a6' }}></i> PROPOSTAS DE CONTRATO
             <span style={{ background: 'rgba(20,184,166,0.15)', color: '#14b8a6', borderRadius: '12px', padding: '1px 8px', fontSize: '12px', fontWeight: 700 }}>{propostasFiltradas.length}</span>
           </h2>
           {loadingPropostas ? (
             <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8' }}>
               <i className="fa-solid fa-spinner fa-spin"></i>
+            </div>
+          ) : propostasFiltradas.length === 0 && !search ? (
+            <div className="empty-state" style={{ background: 'var(--card-bg)', padding: '48px', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+              <i className="fa-solid fa-file-circle-xmark" style={{ fontSize: '48px', color: '#475569', marginBottom: '16px' }}></i>
+              <h4 style={{ fontSize: '18px', color: '#94a3b8' }}>Nenhuma proposta enviada.</h4>
+              <p style={{ color: '#64748b', marginTop: '8px' }}>Abra o perfil de um atleta e envie uma proposta de contrato para ela aparecer aqui.</p>
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '12px' }}>

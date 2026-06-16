@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { enrichPlayers } from '../../utils/playerScore.js';
-import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice';
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
 import {
   fetchEstatisticas,
   selectAllEstatisticas,
@@ -53,13 +54,11 @@ export default function Estatisticas({ onPlayerClick }) {
   const role = user?.role || 'user';
   const isAdmin = role === 'admin';
 
-  const jogadoresDoBanco = useSelector(selectAllAtletas);
-  const loading = useSelector((state) => state.atletas.loading);
+  const { atletas: jogadoresDoBanco, loading, status: atletasStatus, error: atletasError, retry } = useAtletas();
   const dispatch = useDispatch();
 
-  /* Busca atletas e estatísticas do json-server ao montar */
+  /* Busca os registros de estatísticas ao montar (atletas vêm do useAtletas) */
   useEffect(() => {
-    dispatch(fetchAtletas());
     dispatch(fetchEstatisticas());
   }, [dispatch]);
 
@@ -294,12 +293,14 @@ export default function Estatisticas({ onPlayerClick }) {
           data: bulkData,
         })).unwrap();
       }
+      closeModal();
     } catch (err) {
+      // Mantém o modal aberto para o usuário não perder os dados digitados
       console.error('Erro ao salvar:', err);
+      alert(`Erro ao salvar estatística: ${err.message || 'Tente novamente.'}`);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    closeModal();
   };
 
   const confirmDelete = (record) => {
@@ -317,14 +318,8 @@ export default function Estatisticas({ onPlayerClick }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
-        <h2>Processando dados...</h2>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState message="Processando dados..." />;
+  if (atletasStatus === 'failed') return <ErrorState error={atletasError} onRetry={retry} />;
 
   return (
     <div className="stats-page">
