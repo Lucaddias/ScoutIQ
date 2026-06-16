@@ -58,3 +58,11 @@ export const positionFullLabel = (pos) => {
  */
 export const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
 
+/**
+ * Converte uma string monetária em formato PT-BR (ex: "1.500.000") para número.
+ *
+ * @param {string} str - A string a ser convertida.
+ * @returns {number} O valor numérico, ou 0 se a string for inválida.
+ */
+export const parseBR = (str) => Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
+

@@ -32,7 +32,7 @@ const signupSchema = yup.object().shape({
  * @returns {React.ReactElement} A página de login renderizada.
  */
 const Login = ({ onNavigate }) => {
-  const { login, signup, loginAsGuest } = useAuth();
+  const { login, signup } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,8 +100,11 @@ const Login = ({ onNavigate }) => {
     if (msg.includes('Email not confirmed')) return 'Confirme seu email antes de fazer login.';
     if (msg.includes('User already registered')) return 'Este email já está cadastrado. Faça login.';
     if (msg.includes('Password should be')) return 'A senha deve ter pelo menos 6 caracteres.';
-    if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde um momento.';
+    if (msg.includes('rate limit') || msg.includes('Request rate limit')) return 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
     if (msg.includes('Unable to validate email')) return 'Endereço de email inválido.';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('fetch')) {
+      return 'Falha ao conectar ao servidor. Verifique sua internet (ou alguma extensão/adblock bloqueando) e aguarde alguns minutos — pode ser limite de tentativas.';
+    }
     return msg;
   };
 
@@ -199,21 +202,7 @@ const Login = ({ onNavigate }) => {
             )}
           </button>
 
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
-            <span style={{ color: '#64748b', fontSize: '13px', display: 'block', marginBottom: '12px' }}>ou</span>
-            <button 
-              type="button" 
-              onClick={() => {
-                const res = loginAsGuest();
-                if (res.success) onNavigate('inicio');
-              }}
-              style={{ background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6', padding: '12px', width: '100%', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              <i className="fa-solid fa-bolt"></i> Acesso Rápido (Demo)
-            </button>
-          </div>
+
         </form>
 
         <div className="login-footer">

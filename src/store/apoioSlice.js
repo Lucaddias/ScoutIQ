@@ -7,20 +7,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gerarCenarios } from '../utils/algorithm.js';
-
-/**
- * Endereço base da API para relatórios.
- * @type {string}
- * @constant
- */
-const API_URL = 'http://localhost:3001/relatorios';
-
-/**
- * Endereço base da API para propostas de contrato.
- * @type {string}
- * @constant
- */
-const PROPOSTAS_URL = 'http://localhost:3001/propostas';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Thunk assíncrono para simular cenários de compra.
@@ -44,21 +31,26 @@ export const simularCenarios = createAsyncThunk(
  */
 export const salvarPacoteOficial = createAsyncThunk(
   'apoio/salvarRelatorio',
-  async ({ pacoteArray, nomeRelatorio }) => { 
+  async ({ pacoteArray, nomeRelatorio }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado.');
+
     const novoRelatorio = {
       id: `rel_${Date.now()}`,
-      nome: nomeRelatorio, 
+      nome: nomeRelatorio,
       dataCriacao: new Date().toISOString(),
-      atletas: pacoteArray
+      atletas: pacoteArray,
+      user_id: user.id,
     };
-    
-    await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(novoRelatorio)
-    });
-    
-    return novoRelatorio; 
+
+    const { data, error } = await supabase
+      .from('relatorios')
+      .insert([novoRelatorio])
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao salvar relatório: ${error.message}`);
+
+    return data;
   }
 );
 
@@ -70,8 +62,12 @@ export const salvarPacoteOficial = createAsyncThunk(
 export const fetchRelatorios = createAsyncThunk(
   'apoio/fetchRelatorios', 
   async () => {
-    const response = await fetch(API_URL);
-    return await response.json();
+    const { data, error } = await supabase
+      .from('relatorios')
+      .select('*')
+      .order('dataCriacao', { ascending: false });
+    if (error) throw new Error(`Erro ao buscar relatórios: ${error.message}`);
+    return data;
   }
 );
 
@@ -83,7 +79,11 @@ export const fetchRelatorios = createAsyncThunk(
 export const deletarRelatorio = createAsyncThunk(
   'apoio/deletarRelatorio', 
   async (id) => {
-    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    const { error } = await supabase
+      .from('relatorios')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar relatório: ${error.message}`);
     return id;
   }
 );
@@ -96,6 +96,9 @@ export const deletarRelatorio = createAsyncThunk(
 export const salvarProposta = createAsyncThunk(
   'apoio/salvarProposta',
   async ({ player, proposal }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuário não autenticado.');
+
     const nova = {
       id: `prop_${Date.now()}`,
       tipo: 'proposta',
@@ -106,14 +109,16 @@ export const salvarProposta = createAsyncThunk(
       jogadorPosicao: player.position,
       jogadorFoto: player.profileImageURL || '',
       jogadorScore: player.score,
+      user_id: user.id,
       ...proposal,
     };
-    await fetch(PROPOSTAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(nova),
-    });
-    return nova;
+    const { data, error } = await supabase
+      .from('propostas')
+      .insert([nova])
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao salvar proposta: ${error.message}`);
+    return data;
   }
 );
 
@@ -125,8 +130,12 @@ export const salvarProposta = createAsyncThunk(
 export const fetchPropostas = createAsyncThunk(
   'apoio/fetchPropostas',
   async () => {
-    const response = await fetch(PROPOSTAS_URL);
-    return await response.json();
+    const { data, error } = await supabase
+      .from('propostas')
+      .select('*')
+      .order('dataCriacao', { ascending: false });
+    if (error) throw new Error(`Erro ao buscar propostas: ${error.message}`);
+    return data;
   }
 );
 
@@ -138,7 +147,11 @@ export const fetchPropostas = createAsyncThunk(
 export const deletarProposta = createAsyncThunk(
   'apoio/deletarProposta',
   async (id) => {
-    await fetch(`${PROPOSTAS_URL}/${id}`, { method: 'DELETE' });
+    const { error } = await supabase
+      .from('propostas')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(`Erro ao deletar proposta: ${error.message}`);
     return id;
   }
 );
@@ -151,12 +164,14 @@ export const deletarProposta = createAsyncThunk(
 export const renomearRelatorio = createAsyncThunk(
   'apoio/renomearRelatorio', 
   async ({ id, novoNome }) => {
-    const response = await fetch(`${API_URL}/${id}`, { 
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: novoNome })
-    });
-    return await response.json();
+    const { data, error } = await supabase
+      .from('relatorios')
+      .update({ nome: novoNome })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(`Erro ao renomear relatório: ${error.message}`);
+    return data;
   }
 );
 
@@ -167,6 +182,7 @@ const apoioSlice = createSlice({
   name: 'apoio',
   initialState: {
     cenariosGerados: null,
+    avisos: [],
     loadingSimulacao: false,
     loadingRelatorio: false,
     pacoteSelecionado: null,
@@ -188,17 +204,24 @@ const apoioSlice = createSlice({
     limparSimulacao: (state) => {
       state.cenariosGerados = null;
       state.pacoteSelecionado = null;
+      state.avisos = [];
     }
   },
   extraReducers: (builder) => {
     builder
       // --- SIMULAR CENÁRIOS ---
-      .addCase(simularCenarios.pending, (state) => { 
-        state.loadingSimulacao = true; 
+      .addCase(simularCenarios.pending, (state) => {
+        state.loadingSimulacao = true;
+        state.avisos = [];
       })
       .addCase(simularCenarios.fulfilled, (state, action) => {
         state.loadingSimulacao = false;
-        state.cenariosGerados = action.payload;
+        const { avisos, ...cenarios } = action.payload;
+        state.cenariosGerados = cenarios;
+        state.avisos = avisos || [];
+      })
+      .addCase(simularCenarios.rejected, (state) => {
+        state.loadingSimulacao = false;
       })
       
       // --- SALVAR RELATÓRIO NO BANCO ---
@@ -207,9 +230,12 @@ const apoioSlice = createSlice({
       })
       .addCase(salvarPacoteOficial.fulfilled, (state, action) => {
         state.loadingRelatorio = false;
-        state.pacoteSelecionado = action.payload; 
+        state.pacoteSelecionado = action.payload;
       })
- 
+      .addCase(salvarPacoteOficial.rejected, (state) => {
+        state.loadingRelatorio = false;
+      })
+
       // --- BUSCAR HISTÓRICO DE RELATÓRIOS ---
       .addCase(fetchRelatorios.pending, (state) => { 
         state.loadingHistorico = true; 
@@ -217,7 +243,7 @@ const apoioSlice = createSlice({
       .addCase(fetchRelatorios.fulfilled, (state, action) => {
         state.loadingHistorico = false;
         const dados = Array.isArray(action.payload) ? action.payload : [];
-        state.historicoRelatorios = [...dados].reverse(); 
+        state.historicoRelatorios = dados; 
       })
  
       // --- RENOMEAR RELATÓRIO ---
@@ -243,7 +269,7 @@ const apoioSlice = createSlice({
       .addCase(fetchPropostas.fulfilled, (state, action) => {
         state.loadingPropostas = false;
         const dados = Array.isArray(action.payload) ? action.payload : [];
-        state.propostas = [...dados].reverse();
+        state.propostas = dados;
       })
  
       // --- DELETAR PROPOSTA ---

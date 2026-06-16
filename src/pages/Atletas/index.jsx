@@ -1,30 +1,17 @@
-/**
- * @file Listagem paginada e filtrada de atletas com modal de cadastro.
- * @module pages/Atletas
- */
-import React, { useState, useMemo, useReducer, useEffect } from 'react';
+import React, { useState, useMemo, useReducer } from 'react';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import { enrichPlayers } from '../../utils/playerScore.js';
+import { parseBR, positionFullLabel } from '../../utils/formatters.js';
+import { TIMES_BR } from '../../utils/constants.js';
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { ErrorState } from '../../components/FetchState.jsx';
 import './Atletas.css';
 
-/*
- * HOOKS DO REDUX E NOVOS THUNKS ASSÍNCRONOS
- */
-import { useSelector, useDispatch } from 'react-redux';
-import { selectAllAtletas } from '../../store/atletasSlice';
-import { fetchAtletas, criarAtleta } from '../../store/atletasSlice';
+import { useDispatch } from 'react-redux';
+import { criarAtleta } from '../../store/atletasSlice';
 
 const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
-const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
 const PAGE_SIZE = 12;
-
-const TIMES_BR = [
-  'América-MG', 'Athletico-PR', 'Atlético-GO', 'Atlético-MG', 'Avaí', 'Bahia',
-  'Botafogo', 'Ceará', 'Chapecoense', 'Corinthians', 'Coritiba', 'Cuiabá',
-  'Cruzeiro', 'Flamengo', 'Fluminense', 'Fortaleza', 'Goiás', 'Grêmio',
-  'Internacional', 'Juventude', 'Mirassol', 'Palmeiras', 'Red Bull Bragantino',
-  'Remo', 'Santos', 'São Paulo', 'Vasco da Gama', 'Vitória',
-];
 
 const inputStyle = {
   padding: '10px 12px', borderRadius: '6px',
@@ -57,29 +44,10 @@ const initialFilterState = {
   page: 1,
 };
 
-/**
- * Página de listagem de atletas. Suporta filtragem por nome, posição, clube e ordenação,
- * com paginação de 12 cards por página. Inclui modal inline de cadastro de novos atletas.
- * Busca e enriquece os dados via Redux (fetchAtletas + enrichPlayers).
- *
- * @component
- * @param {object}   props                  - Propriedades do componente.
- * @param {Function} [props.onPlayerClick]  - Callback ao clicar em um PlayerCard (recebe o player).
- * @param {string}   [props.initialPosition] - Posição inicial do filtro de posição.
- * @returns {React.ReactElement} A página de atletas renderizada.
- */
 export default function Atletas({ onPlayerClick, initialPosition }) {
-  /*
-   * LEITURA DO STORE: Agora pegamos a lista E o estado de loading
-   */
- const jogadoresDoBanco = useSelector(selectAllAtletas);
- const loading = useSelector((state) => state.atletas.loading);
+  // Leitura do store via hook compartilhado (fetch automático quando idle)
+  const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();
-
-  // O GATILHO INICIAL: Busca dados frescos do JSON Server sempre que a tela abre
-  useEffect(() => {
-    dispatch(fetchAtletas());
-  }, [dispatch]);
 
   // Os dados crus do Redux são enriquecidos com o score calculado antes de serem usados
   const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
@@ -104,8 +72,6 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       setFormulario(f => ({ ...f, [field]: rawValue }));
     }
   };
-
-  const parseBR = (str) => Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
 
 
   // Lógica de Filtros
@@ -132,7 +98,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   /* ── CREATE ────────────────────────────────────────────────────────────── */
-  const handleSalvar = (e) => {
+  const handleSalvar = async (e) => {
     e.preventDefault();
     const novoJogador = {
       name: formulario.name,
@@ -140,13 +106,22 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
       team: formulario.team,
       marketValue: parseBR(formulario.marketValue),
       monthlySalary: parseBR(formulario.monthlySalary),
-      stats: {}
+      age: 25, // Default age
+      profileImageURL: '',
+      statistics: { goals: 0, assists: 0 },
     };
-    dispatch(criarAtleta(novoJogador));
-    setModalAberto(false);
-    setFormulario({ name: '', position: 'Forward', team: '', marketValue: '', monthlySalary: '' });
+    try {
+      await dispatch(criarAtleta(novoJogador)).unwrap();
+      setModalAberto(false);
+      setFormulario({ name: '', position: 'Forward', team: '', marketValue: '', monthlySalary: '' });
+    } catch (err) {
+      // Mantém o modal aberto para o usuário não perder os dados digitados
+      alert(`Erro ao cadastrar atleta: ${err.message || 'Tente novamente.'}`);
+    }
   };
 
+
+  if (status === 'failed') return <ErrorState error={error} onRetry={retry} />;
 
   return (
     <div className="atletas-page">
@@ -180,7 +155,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={labelStyle}>Posição</label>
                 <select value={formulario.position} onChange={e => setFormField('position', e.target.value)} style={inputStyle}>
-                  {POSITIONS.filter(p => p !== 'Todos').map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
+                  {POSITIONS.filter(p => p !== 'Todos').map(p => <option key={p} value={p}>{positionFullLabel(p)}</option>)}
                 </select>
               </div>
 
@@ -239,7 +214,7 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
           <input type="text" placeholder="Buscar por nome..." value={search} onChange={e => dispatchFilter({ type: 'SET_SEARCH', payload: e.target.value })} />
         </div>
         <select className="filter-select" value={position} onChange={e => dispatchFilter({ type: 'SET_POSITION', payload: e.target.value })}>
-          {POSITIONS.map(p => <option key={p} value={p}>{p === 'Todos' ? 'Todas posições' : POS_PT[p]}</option>)}
+          {POSITIONS.map(p => <option key={p} value={p}>{p === 'Todos' ? 'Todas posições' : positionFullLabel(p)}</option>)}
         </select>
         <select className="filter-select" value={team} onChange={e => dispatchFilter({ type: 'SET_TEAM', payload: e.target.value })}>
           {teams.map(t => <option key={t} value={t}>{t}</option>)}

@@ -1,17 +1,11 @@
 /**
  * Slice do Redux para controle dos Atletas/Jogadores do ScoutIQ.
- * Centraliza o estado e operações CRUD se conectando ao JSON-Server.
+ * Centraliza o estado e operações CRUD se conectando ao Supabase.
  * @module store/atletasSlice
  */
 
 import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
-
-/**
- * Endereço base da API para atletas.
- * @type {string}
- * @constant
- */
-const API_URL = 'http://localhost:3001/athletes';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Thunk assíncrono para buscar todos os atletas do servidor.
@@ -20,24 +14,31 @@ const API_URL = 'http://localhost:3001/athletes';
  * @type {Function}
  */
 export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () => {
-  const response = await fetch(API_URL);
-  if (!response.ok) throw new Error('Erro ao buscar atletas');
-  return await response.json(); // Retorna o array de atletas
+  const { data, error } = await supabase
+    .from('athletes')
+    .select('*');
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
  * Thunk assíncrono para criar um novo atleta no servidor.
- * O JSON Server gera o ID automaticamente.
+ * Gera um ID único com prefixo 'USR-' para diferenciar de atletas importados ('SF-').
  *
  * @type {Function}
  */
 export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJogador) => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(novoJogador)
-  });
-  return await response.json(); // Retorna o jogador criado (com o ID novo)
+  const atletaComId = {
+    id: `USR-${crypto.randomUUID()}`,
+    ...novoJogador,
+  };
+  const { data, error } = await supabase
+    .from('athletes')
+    .insert([atletaComId])
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
@@ -46,12 +47,14 @@ export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJo
  * @type {Function}
  */
 export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
-  const response = await fetch(`${API_URL}/${jogador.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(jogador)
-  });
-  return await response.json(); // Retorna o jogador atualizado
+  const { data, error } = await supabase
+    .from('athletes')
+    .update(jogador)
+    .eq('id', jogador.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
 });
 
 /**
@@ -60,9 +63,11 @@ export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', a
  * @type {Function}
  */
 export const deletarAtletaMock = createAsyncThunk('atletas/deletarAtleta', async (id) => {
-  await fetch(`${API_URL}/${id}`, { 
-    method: 'DELETE' 
-  });
+  const { error } = await supabase
+    .from('athletes')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
   return id; // Retornamos o ID para o Redux saber quem remover da tela
 });
 
@@ -86,43 +91,46 @@ export const atletasSlice = createSlice({
   initialState: atletasAdapter.getInitialState({
     loading: false,
     error: null,
+    status: 'idle',
   }),
-  reducers: {}, 
-  
+  reducers: {
+    resetAtletasStatus: (state) => { state.status = 'idle'; },
+  },
+
   extraReducers: (builder) => {
     builder
       // --- FETCH ---
-      .addCase(fetchAtletas.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(fetchAtletas.fulfilled, (state, action) => { 
-        state.loading = false; 
-        // Substitui o "state.lista = action.payload"
-        atletasAdapter.setAll(state, action.payload); 
+      .addCase(fetchAtletas.pending, (state) => { state.loading = true; state.error = null; state.status = 'loading'; })
+      .addCase(fetchAtletas.fulfilled, (state, action) => {
+        state.loading = false;
+        state.status = 'succeeded';
+        atletasAdapter.setAll(state, action.payload);
       })
-      .addCase(fetchAtletas.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
-      
+      .addCase(fetchAtletas.rejected, (state, action) => { state.loading = false; state.error = action.error.message; state.status = 'failed'; })
+
       // --- CREATE ---
-      .addCase(criarAtleta.pending, (state) => { state.loading = true; })
+      .addCase(criarAtleta.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(criarAtleta.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui o "state.lista.push"
         atletasAdapter.addOne(state, action.payload);
       })
- 
+      .addCase(criarAtleta.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+
       // --- UPDATE ---
-      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(atualizarAtletaMock.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui aquele "findIndex" manual. Muito mais limpo!
         atletasAdapter.updateOne(state, { id: action.payload.id, changes: action.payload });
       })
- 
+      .addCase(atualizarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+
       // --- DELETE ---
-      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; })
+      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(deletarAtletaMock.fulfilled, (state, action) => {
         state.loading = false;
-        // Substitui o "state.lista.filter"
         atletasAdapter.removeOne(state, action.payload);
-      });
+      })
+      .addCase(deletarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; });
   },
 });
 
@@ -130,6 +138,8 @@ export const atletasSlice = createSlice({
  * Seletores gerados automaticamente pelo adaptador para consulta direta no estado do Redux.
  * Exibe funções como selectAllAtletas, selectAtletaById e selectAtletaIds.
  */
+export const { resetAtletasStatus } = atletasSlice.actions;
+
 export const {
   selectAll: selectAllAtletas,
   selectById: selectAtletaById,

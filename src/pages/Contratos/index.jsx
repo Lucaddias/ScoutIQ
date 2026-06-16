@@ -1,17 +1,12 @@
-/**
- * @file Página de geração e edição de propostas de contrato para atletas.
- * @module pages/Contratos
- */
-import React, { useState, useMemo, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas } from '../../store/atletasSlice';
-import { selectAllAtletas } from '../../store/atletasSlice';
+import React, { useState, useMemo } from 'react';
+import { useDispatch } from 'react-redux';
 import { salvarProposta } from '../../store/apoioSlice';
 import { enrichPlayers } from '../../utils/playerScore.js';
-import { formatBRL } from '../../utils/formatters.js';
+import { formatBRL, parseBR } from '../../utils/formatters.js';
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
 import './Contratos.css';
 
-const parseBR = (str) => Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
 const formatBRNum = (v) => Number(v).toLocaleString('pt-BR');
 
 /*
@@ -34,22 +29,9 @@ function generateProposal(player) {
   };
 }
 
-/**
- * Página de Contratos (acesso para roles 'scout' e 'admin').
- * Permite buscar um atleta, visualizar a proposta gerada automaticamente,
- * editar os termos do contrato e enviar a proposta final ao Redux.
- *
- * @component
- * @returns {React.ReactElement} A página de propostas de contrato.
- */
 export default function Contratos() {
-  const jogadoresDoBanco = useSelector(selectAllAtletas);
-   const loading = useSelector((state) => state.atletas.loading);
+  const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (jogadoresDoBanco.length === 0) dispatch(fetchAtletas());
-  }, [dispatch, jogadoresDoBanco.length]);
 
   const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
   
@@ -75,9 +57,13 @@ export default function Contratos() {
     setDraft(null);
   };
 
-  const handleSendProposal = () => {
-    dispatch(salvarProposta({ player: selectedPlayer, proposal }));
-    setToast(`Proposta enviada e salva para ${selectedPlayer.name}!`);
+  const handleSendProposal = async () => {
+    try {
+      await dispatch(salvarProposta({ player: selectedPlayer, proposal })).unwrap();
+      setToast(`✅ Proposta enviada e salva para ${selectedPlayer.name}!`);
+    } catch (err) {
+      setToast(`❌ Erro ao salvar proposta: ${err.message || 'Tente novamente.'}`);
+    }
     setTimeout(() => setToast(null), 3500);
   };
 
@@ -130,14 +116,8 @@ export default function Contratos() {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
-        <h2>Carregando atletas...</h2>
-      </div>
-    );
-  }
+  if (loading) return <LoadingState message="Carregando atletas..." />;
+  if (status === 'failed') return <ErrorState error={error} onRetry={retry} />;
 
   return (
     <div className="contratos-page">

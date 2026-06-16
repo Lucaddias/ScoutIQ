@@ -1,10 +1,5 @@
-/**
- * @file Página de visão geral da liga com artilheiros, assistentes e gráfico de gols por posição.
- * @module pages/Inicio
- */
-import React, { useMemo, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { selectAllAtletas, fetchAtletas } from '../../store/atletasSlice';
+import React, { useMemo } from 'react';
+import { useAtletas } from '../../hooks/useAtletas.js';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './Inicio.css';
 
@@ -40,21 +35,8 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-/**
- * Página inicial do dashboard. Exibe estatísticas gerais da liga (dados fixos de demonstração),
- * tabelas de artilheiros e assistentes, e um gráfico de barras dinâmico (Recharts)
- * mostrando gols por setor de campo calculados a partir dos atletas do Redux.
- *
- * @component
- * @returns {React.ReactElement} A página de visão geral da liga.
- */
 const Inicio = () => {
-  const dispatch = useDispatch();
-  const atletas = useSelector(selectAllAtletas);
-
-  useEffect(() => {
-    dispatch(fetchAtletas());
-  }, [dispatch]);
+  const { atletas, loading } = useAtletas();
 
   // Aggregation logic para os Gols por Posição
   const chartData = useMemo(() => {
@@ -177,9 +159,13 @@ const Inicio = () => {
                   <Bar dataKey="gols" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
+            ) : loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#6b7a99' }}>
                 <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: '8px' }}></i> Carregando dados...
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#6b7a99' }}>
+                <i className="fa-solid fa-chart-simple" style={{ marginRight: '8px' }}></i> Sem dados de atletas para exibir.
               </div>
             )}
           </div>

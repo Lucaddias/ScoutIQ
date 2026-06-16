@@ -38,21 +38,20 @@ function LoadingScreen() {
 function AppContent() {
   const { user, loading } = useAuth();
   const [page, setPage] = useState(user ? 'inicio' : 'prelogin');
-  const [pacoteSelecionado, setPacoteSelecionado] = useState(null);
 
   if (loading) return <LoadingScreen />;
 
   const navigate = (target) => setPage(target);
 
   if (user && (page === 'prelogin' || page === 'login')) {
-    return <Dashboard page="inicio" onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
+    return <Dashboard page="inicio" onNavigate={navigate} />;
   }
 
   if (page === 'prelogin') return <PreLogin onNavigate={navigate} />;
   if (page === 'login')    return <Login    onNavigate={navigate} />;
 
   if (!user) return <Login onNavigate={navigate} />;
-  return <Dashboard page={page} onNavigate={navigate} pacoteSelecionado={pacoteSelecionado} setPacoteSelecionado={setPacoteSelecionado} />;
+  return <Dashboard page={page} onNavigate={navigate} />;
 }
 
 /**

@@ -109,6 +109,53 @@
 .nav-item.logout { color: #6b7a99; }
 .nav-item.logout:hover { color: #f87171; background: rgba(239,68,68,0.08); }
 
+/* ===== Chevron (seta da pasta) ===== */
+.nav-chevron {
+  margin-left: auto;
+  font-size: 10px !important;
+  width: auto !important;
+  color: #475569;
+  transition: transform 0.22s ease;
+  flex-shrink: 0;
+}
+.nav-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ===== Sub-itens (pasta expansível) ===== */
+.nav-children {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease;
+}
+.nav-children--open {
+  max-height: 200px;
+  opacity: 1;
+}
+
+.nav-child-item {
+  padding-left: 32px !important;
+  font-size: 12px !important;
+  border-left: 2px solid #1e293b;
+  margin-left: 14px;
+  border-radius: 0 8px 8px 0 !important;
+  color: #64748b !important;
+}
+.nav-child-item:hover {
+  border-left-color: #3b82f6;
+  background: rgba(59,130,246,0.06) !important;
+  color: rgba(255,255,255,0.8) !important;
+}
+.nav-child-item.active {
+  border-left-color: #3b82f6;
+  background: rgba(59,130,246,0.1) !important;
+  color: #60a5fa !important;
+}
+
 /* ===== RESPONSIVIDADE MOBILE ===== */
 @media (max-width: 768px) {
   .sidebar {

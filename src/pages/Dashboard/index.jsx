@@ -1,7 +1,3 @@
-/**
- * @file Layout principal autenticado. Orquestra sidebar, roteamento de páginas e modais globais.
- * @module pages/Dashboard
- */
 import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar.jsx';
 import Inicio from '../Inicio/index.jsx';
@@ -16,19 +12,12 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useDispatch } from 'react-redux';
 import { atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
 import { ajustarStatAtleta } from '../../store/estatisticasSlice';
+import { TIMES_BR } from '../../utils/constants.js';
 import PlayerModal from '../../components/PlayerModal.jsx';
 import './Dashboard.css';
 
 const POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
-
-const TIMES_BR = [
-  'América-MG', 'Athletico-PR', 'Atlético-GO', 'Atlético-MG', 'Avaí', 'Bahia',
-  'Botafogo', 'Ceará', 'Chapecoense', 'Corinthians', 'Coritiba', 'Cuiabá',
-  'Cruzeiro', 'Flamengo', 'Fluminense', 'Fortaleza', 'Goiás', 'Grêmio',
-  'Internacional', 'Juventude', 'Mirassol', 'Palmeiras', 'Red Bull Bragantino',
-  'Remo', 'Santos', 'São Paulo', 'Vasco da Gama', 'Vitória',
-];
 
 const inputStyle = {
   padding: '10px 12px', borderRadius: '6px',
@@ -43,22 +32,6 @@ const formatBR = (value) => {
   return num.toLocaleString('pt-BR');
 };
 
-const parseBR = (str) => {
-  if (!str) return 0;
-  return Number(String(str).replace(/\./g, '').replace(',', '.')) || 0;
-};
-
-/**
- * Componente raiz do layout autenticado. Renderiza o {@link module:components/Sidebar|Sidebar},
- * despacha a página correta pelo `page` prop, e gerencia o modal de visualização/edição de atletas.
- * Controle de acesso por role está centralizado aqui através da função `canAccess`.
- *
- * @component
- * @param {object}   props            - Propriedades do componente.
- * @param {string}   props.page       - ID da página atual (ex: 'inicio', 'atletas', 'admin').
- * @param {Function} props.onNavigate - Callback de navegação para mudar de página.
- * @returns {React.ReactElement} O layout do dashboard com conteúdo dinâmico.
- */
 const Dashboard = ({ page, onNavigate }) => {
   const { user } = useAuth();
   const role = user?.role || 'user';
@@ -79,9 +52,18 @@ const Dashboard = ({ page, onNavigate }) => {
           return <div className="main-content"><ApoioDecisao onNavigate={onNavigate} /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'relatorios_elenco':
+        if (canAccess(['user', 'scout', 'admin'])) {
+          return <div className="main-content"><Relatorios filtroInicial="relatorios" /></div>;
+        }
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'relatorios_propostas':
+        if (canAccess(['user', 'scout', 'admin'])) {
+          return <div className="main-content"><Relatorios filtroInicial="propostas" /></div>;
+        }
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'relatorios':
         if (canAccess(['user', 'scout', 'admin'])) {
-          // A tela de relatórios agora vai puxar os dados sozinha do Redux!
           return <div className="main-content"><Relatorios /></div>;
         }
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
@@ -94,6 +76,12 @@ const Dashboard = ({ page, onNavigate }) => {
         return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'perfil':
         return <div className="main-with-sidebar"><Perfil /></div>;
+      case 'admin_perfis':
+        if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage filtroInicial="perfis" /></div>;
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
+      case 'admin_jogadores':
+        if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage filtroInicial="jogadores" /></div>;
+        return <div className="main-content"><h2>Acesso Negado</h2></div>;
       case 'admin':
         if (canAccess(['admin'])) return <div className="main-with-sidebar"><AdminPage /></div>;
         return <div className="main-content"><h2>Acesso Negado</h2></div>;

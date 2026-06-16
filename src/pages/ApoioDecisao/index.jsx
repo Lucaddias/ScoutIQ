@@ -1,11 +1,8 @@
-/**
- * @file Simulador de contratações com três cenários (Performance, ROI, Conservador).
- * @module pages/ApoioDecisao
- */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { fetchAtletas, selectAllAtletas } from '../../store/atletasSlice'; 
-import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice'; 
+import { useAtletas } from '../../hooks/useAtletas.js';
+import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
+import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
@@ -27,29 +24,14 @@ const POSITIONS = [
   { val: 'GOL', db: 'Goalkeeper', label: 'Goleiro (GOL)' },
 ];
 
-/**
- * Página de Apoio à Decisão. Permite ao usuário configurar orçamento, teto salarial
- * e vagas por posição para gerar 3 cenários de contratação via algoritmo.
- * O cenário ativo pode ser exportado como relatório oficial nomeado pelo usuário.
- *
- * @component
- * @param {object}   props            - Propriedades do componente.
- * @param {Function} props.onNavigate - Callback de navegação usado após salvar relatório.
- * @returns {React.ReactElement} A página do simulador de contratações.
- */
 export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 
-  // 1. Lendo os atletas com o Entity Adapter
-  const jogadoresDoBanco = useSelector(selectAllAtletas);
-  const loadingAtletas = useSelector((state) => state.atletas.loading);
-  
-  // 2. Lendo as simulações direto da gaveta de apoio
-  const { cenariosGerados, loadingSimulacao } = useSelector((state) => state.apoio);
+  // 1. Lendo os atletas via hook compartilhado (fetch automático quando idle)
+  const { atletas: jogadoresDoBanco, loading: loadingAtletas, status: atletasStatus, error: atletasError, retry } = useAtletas();
 
-  useEffect(() => {
-    if (jogadoresDoBanco.length === 0) dispatch(fetchAtletas());
-  }, [dispatch, jogadoresDoBanco.length]);
+  // 2. Lendo as simulações direto da gaveta de apoio
+  const { cenariosGerados, loadingSimulacao, avisos } = useSelector((state) => state.apoio);
 
   const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
@@ -138,7 +120,7 @@ export default function ApoioDecisao({ onNavigate }) {
       nomeRelatorio: nomeDigitado 
     })).then(() => {
       setIsModalOpen(false); // Fecha o modal
-      onNavigate('relatorios'); // Redireciona
+      onNavigate('relatorios_elenco'); // vai direto para Relatórios de Elenco
     });
   };
 
@@ -146,14 +128,8 @@ export default function ApoioDecisao({ onNavigate }) {
   const investimentoTotal = pacoteAtivo.reduce((a, p) => a + p.marketValue, 0);
   const folhaCalculada = pacoteAtivo.reduce((a, p) => a + p.monthlySalary, 0);
 
-  if (loadingAtletas) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>
-        <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '40px', marginBottom: '15px', color: '#10b981' }}></i>
-        <h2>Carregando atletas...</h2>
-      </div>
-    );
-  }
+  if (loadingAtletas) return <LoadingState message="Carregando atletas..." />;
+  if (atletasStatus === 'failed') return <ErrorState error={atletasError} onRetry={retry} />;
 
   return (
     <div className="apoio-decisao-page">
@@ -239,8 +215,34 @@ export default function ApoioDecisao({ onNavigate }) {
             </div>
           )}
 
+          {!loadingSimulacao && cenariosGerados && pacoteAtivo.length === 0 && (
+            <div className="empty-state" style={{ padding: '24px', textAlign: 'center' }}>
+              <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '32px', color: '#f59e0b', marginBottom: '12px' }}></i>
+              <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>Nenhum atleta encontrado neste cenário</h4>
+              <p style={{ color: '#94a3b8', fontSize: '13px' }}>Nenhum jogador se enquadrou nas restrições de orçamento e teto salarial.</p>
+              {avisos && avisos.length > 0 && (
+                <ul style={{ listStyle: 'none', marginTop: '12px', padding: 0, textAlign: 'left' }}>
+                  {avisos.map((aviso, i) => (
+                    <li key={i} style={{ color: '#fbbf24', fontSize: '12px', padding: '4px 0' }}>
+                      <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '6px' }}></i>{aviso}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           {!loadingSimulacao && cenariosGerados && pacoteAtivo.length > 0 && (
             <>
+              {avisos && avisos.length > 0 && (
+                <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px' }}>
+                  {avisos.map((aviso, i) => (
+                    <p key={i} style={{ color: '#fbbf24', fontSize: '12px', margin: '2px 0' }}>
+                      <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '6px' }}></i>{aviso}
+                    </p>
+                  ))}
+                </div>
+              )}
               <div className="results-metrics">
                 <div className="metric-box"><span>Custo Total</span><strong>{formatBRL(investimentoTotal)}</strong></div>
                 <div className="metric-box"><span>Folha Mensal</span><strong>{formatBRL(folhaCalculada)}</strong></div>
