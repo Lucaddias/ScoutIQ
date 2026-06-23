@@ -36,7 +36,7 @@ export const salvarPacoteOficial = createAsyncThunk(
     if (!user) throw new Error('Usuário não autenticado.');
 
     const novoRelatorio = {
-      id: `rel_${Date.now()}`,
+      id: `rel_${crypto.randomUUID()}`,
       nome: nomeRelatorio,
       dataCriacao: new Date().toISOString(),
       atletas: pacoteArray,
@@ -100,7 +100,7 @@ export const salvarProposta = createAsyncThunk(
     if (!user) throw new Error('Usuário não autenticado.');
 
     const nova = {
-      id: `prop_${Date.now()}`,
+      id: `prop_${crypto.randomUUID()}`,
       tipo: 'proposta',
       dataCriacao: new Date().toISOString(),
       jogadorId: player.id,

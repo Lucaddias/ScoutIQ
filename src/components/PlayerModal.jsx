@@ -318,14 +318,14 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
 
           <div className="modal-bars-wrap">
             <h4>Estatísticas Detalhadas</h4>
-            <StatBar label="Gols" statKey="goals" value={s.goals ?? 0} max={refs.goals ?? 20} color="#f59e0b" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Assistências" statKey="assists" value={s.assists ?? 0} max={refs.assists ?? 15} color="#14b8a6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Gols" statKey="goals" value={s.goals ?? 0} max={refs.goals ?? 20} color="#f59e0b" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
+            <StatBar label="Assistências" statKey="assists" value={s.assists ?? 0} max={refs.assists ?? 15} color="#14b8a6" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
             <StatBar label="Precisão de Passe" statKey="passAcc" value={passAcc} max={100} unit="%" color="#3b82f6" /> {/* Not directly editable since it's derived */}
-            <StatBar label="Tackles" statKey="tackles" value={s.tackles ?? 0} max={refs.tackles ?? 250} color="#8b5cf6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Interceptações" statKey="interceptions" value={s.interceptions ?? 0} max={refs.interceptions ?? 100} color="#ec4899" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Distância" statKey="distanceCoveredKm" value={distKm.toFixed(1)} max={refs.distanceCoveredKm ?? 300} unit="km" color="#06b6d4" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Cartões Amarelos" statKey="yellowCards" value={s.yellowCards ?? 0} max={15} color="#eab308" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Cartões Vermelhos" statKey="redCards" value={s.redCards ?? 0} max={5} color="#ef4444" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Tackles" statKey="tackles" value={s.tackles ?? 0} max={refs.tackles ?? 250} color="#8b5cf6" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
+            <StatBar label="Interceptações" statKey="interceptions" value={s.interceptions ?? 0} max={refs.interceptions ?? 100} color="#ec4899" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
+            <StatBar label="Distância" statKey="distanceCoveredKm" value={distKm.toFixed(1)} max={refs.distanceCoveredKm ?? 300} unit="km" color="#06b6d4" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
+            <StatBar label="Cartões Amarelos" statKey="yellowCards" value={s.yellowCards ?? 0} max={15} color="#eab308" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
+            <StatBar label="Cartões Vermelhos" statKey="redCards" value={s.redCards ?? 0} max={5} color="#ef4444" isAdmin={isAdmin} onStatEdit={onStatEdit ? (k, nv, ov) => onStatEdit(player, k, nv, ov) : undefined} />
           </div>
         </div>
       </div>
