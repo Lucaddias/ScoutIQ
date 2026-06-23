@@ -47,7 +47,7 @@ export const criarAtleta = createAsyncThunk('atletas/criarAtleta', async (novoJo
  *
  * @type {Function}
  */
-export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
+export const atualizarAtleta = createAsyncThunk('atletas/atualizarAtleta', async (jogador) => {
   const { data, error } = await supabase
     .from('athletes')
     .update(jogador)
@@ -63,7 +63,7 @@ export const atualizarAtletaMock = createAsyncThunk('atletas/atualizarAtleta', a
  *
  * @type {Function}
  */
-export const deletarAtletaMock = createAsyncThunk('atletas/deletarAtleta', async (id) => {
+export const deletarAtleta = createAsyncThunk('atletas/deletarAtleta', async (id) => {
   const { error } = await supabase
     .from('athletes')
     .delete()
@@ -118,20 +118,20 @@ export const atletasSlice = createSlice({
       .addCase(criarAtleta.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
 
       // --- UPDATE ---
-      .addCase(atualizarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(atualizarAtletaMock.fulfilled, (state, action) => {
+      .addCase(atualizarAtleta.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(atualizarAtleta.fulfilled, (state, action) => {
         state.loading = false;
         atletasAdapter.updateOne(state, { id: action.payload.id, changes: action.payload });
       })
-      .addCase(atualizarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
+      .addCase(atualizarAtleta.rejected, (state, action) => { state.loading = false; state.error = action.error.message; })
 
       // --- DELETE ---
-      .addCase(deletarAtletaMock.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(deletarAtletaMock.fulfilled, (state, action) => {
+      .addCase(deletarAtleta.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(deletarAtleta.fulfilled, (state, action) => {
         state.loading = false;
         atletasAdapter.removeOne(state, action.payload);
       })
-      .addCase(deletarAtletaMock.rejected, (state, action) => { state.loading = false; state.error = action.error.message; });
+      .addCase(deletarAtleta.rejected, (state, action) => { state.loading = false; state.error = action.error.message; });
   },
 });
 
