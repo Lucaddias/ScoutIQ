@@ -5,7 +5,6 @@
 import React, { useState, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { salvarProposta } from '../../store/apoioSlice';
-import { enrichPlayers } from '../../utils/playerScore.js';
 import { formatBRL, parseBR } from '../../utils/formatters.js';
 import { useAtletas } from '../../hooks/useAtletas.js';
 import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
@@ -42,11 +41,10 @@ function generateProposal(player) {
  * @returns {React.ReactElement} A página de propostas de contrato.
  */
 export default function Contratos() {
-  const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
+  // `allPlayers` já vem enriquecido com o ScoutIQ Score (selector memoizado, pool completo).
+  const { players: allPlayers, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();
 
-  const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
-  
   const [search, setSearch] = useState('');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [proposal, setProposal] = useState(null);

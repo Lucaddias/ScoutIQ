@@ -7,13 +7,18 @@
 
 import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAtletas, resetAtletasStatus, selectAllAtletas } from '../store/atletasSlice';
+import { fetchAtletas, resetAtletasStatus, selectAllAtletas, selectAtletasEnriquecidos } from '../store/atletasSlice';
 
 /**
  * Carrega e expõe o estado dos atletas.
  *
+ * `players` já vem enriquecido com o ScoutIQ Score (via selector memoizado), calculado
+ * uma única vez sobre o pool completo e compartilhado entre todas as telas. `atletas`
+ * é a lista crua, mantida para quem precisar dos dados originais.
+ *
  * @returns {{
  *   atletas: Object[],
+ *   players: import('../store/atletasSlice').EnrichedAthlete[],
  *   loading: boolean,
  *   status: 'idle'|'loading'|'succeeded'|'failed',
  *   error: string|null,
@@ -23,6 +28,7 @@ import { fetchAtletas, resetAtletasStatus, selectAllAtletas } from '../store/atl
 export function useAtletas() {
   const dispatch = useDispatch();
   const atletas = useSelector(selectAllAtletas);
+  const players = useSelector(selectAtletasEnriquecidos);
   const loading = useSelector((state) => state.atletas.loading);
   const status  = useSelector((state) => state.atletas.status);
   const error   = useSelector((state) => state.atletas.error);
@@ -33,5 +39,5 @@ export function useAtletas() {
 
   const retry = useCallback(() => dispatch(resetAtletasStatus()), [dispatch]);
 
-  return { atletas, loading, status, error, retry };
+  return { atletas, players, loading, status, error, retry };
 }

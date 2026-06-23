@@ -2,7 +2,7 @@
  * @file Simulador de contratações com três cenários (Performance, ROI, Conservador).
  * @module pages/ApoioDecisao
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useAtletas } from '../../hooks/useAtletas.js';
 import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
@@ -10,7 +10,6 @@ import { simularCenarios, salvarPacoteOficial } from '../../store/apoioSlice';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
 import PlayerModal from '../../components/PlayerModal.jsx';
-import { enrichPlayers } from '../../utils/playerScore.js';
 import { formatBRL, clamp } from '../../utils/formatters.js';
 import './ApoioDecisao.css';
 import ModalNomeRelatorio from '../../components/ModalNomeRelatorio.jsx';
@@ -41,13 +40,12 @@ const POSITIONS = [
 export default function ApoioDecisao({ onNavigate }) {
   const dispatch = useDispatch();
 
-  // 1. Lendo os atletas via hook compartilhado (fetch automático quando idle)
-  const { atletas: jogadoresDoBanco, loading: loadingAtletas, status: atletasStatus, error: atletasError, retry } = useAtletas();
+  // 1. Lendo os atletas via hook compartilhado (fetch automático quando idle).
+  //    `allPlayers` já vem enriquecido com o ScoutIQ Score (selector memoizado, pool completo).
+  const { players: allPlayers, loading: loadingAtletas, status: atletasStatus, error: atletasError, retry } = useAtletas();
 
   // 2. Lendo as simulações direto da gaveta de apoio
   const { cenariosGerados, loadingSimulacao, avisos } = useSelector((state) => state.apoio);
-
-  const allPlayers = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
   const [orcamento, setOrcamento] = useState(5000000);
   const [tetoSalarial, setTetoSalarial] = useState(400000);

@@ -113,6 +113,7 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [error, setError] = React.useState(null);
 
   // Sync editValue when value prop changes (e.g. after save)
   React.useEffect(() => {
@@ -121,17 +122,26 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
 
   const pct = Math.min((value / max) * 100, 100);
 
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditValue(value);
+    setError(null);
+  };
+
   const handleSave = async () => {
     if (Number(editValue) === Number(value)) {
-      setIsEditing(false);
+      cancelEdit();
       return;
     }
     setIsSaving(true);
+    setError(null);
     try {
       await onStatEdit(statKey, editValue, value);
       setIsEditing(false);
     } catch (err) {
+      // Mantém o modo de edição aberto para o usuário tentar de novo, e mostra o erro.
       console.error('Erro ao salvar ajuste de stat:', err);
+      setError('Falha ao salvar. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -149,17 +159,23 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
                 className="msb-edit-input"
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSave();
+                  else if (e.key === 'Escape') cancelEdit();
+                }}
                 min="0"
                 step="any"
                 disabled={isSaving}
                 autoFocus
+                aria-label={`Novo valor de ${label}`}
+                aria-invalid={error ? 'true' : undefined}
               />
               {isSaving ? (
                 <span className="msb-saving-text"><i className="fa-solid fa-spinner fa-spin"></i></span>
               ) : (
                 <>
-                  <button className="msb-save-btn" onClick={handleSave}><i className="fa-solid fa-check"></i></button>
-                  <button className="msb-cancel-btn" onClick={() => { setIsEditing(false); setEditValue(value); }}><i className="fa-solid fa-xmark"></i></button>
+                  <button className="msb-save-btn" onClick={handleSave} aria-label={`Salvar ${label}`}><i className="fa-solid fa-check"></i></button>
+                  <button className="msb-cancel-btn" onClick={cancelEdit} aria-label={`Cancelar edição de ${label}`}><i className="fa-solid fa-xmark"></i></button>
                 </>
               )}
             </div>
@@ -167,7 +183,7 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
             <>
               <span className="msb-value">{value}{unit && <small> {unit}</small>}</span>
               {isAdmin && onStatEdit && (
-                <button className="msb-edit-btn" onClick={() => setIsEditing(true)} title={`Editar ${label}`}>
+                <button className="msb-edit-btn" onClick={() => setIsEditing(true)} title={`Editar ${label}`} aria-label={`Editar ${label}`}>
                   <i className="fa-solid fa-pen"></i>
                 </button>
               )}
@@ -175,6 +191,7 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
           )}
         </div>
       </div>
+      {error && <div className="msb-error" role="alert">{error}</div>}
       <div className="msb-track">
         <div className="msb-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
@@ -198,13 +215,23 @@ function StatBar({ label, value, max, unit, color, statKey, isAdmin, onStatEdit 
  * @returns {React.ReactElement|null} O modal renderizado ou `null`.
  */
 export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin, onStatEdit }) {
+  // Fecha com Esc — hook declarado antes de qualquer return condicional (regras de hooks).
+  React.useEffect(() => {
+    if (!player) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [player, onClose]);
+
   if (!player) return null;
 
   const s = player.statistics || {};
   const color = POS_COLORS[player.position] || '#6b7a99';
   const passAcc = s.totalPasses > 0 ? ((s.accuratePasses / s.totalPasses) * 100).toFixed(1) : 0;
-  const gamesPlayed = s.gamesPlayed || 1;
   const distKm = s.distanceCoveredKm || 0;
+  // Tetos das barras relativos à posição (melhor da posição preenche a barra);
+  // fallback p/ defaults quando o atleta não vem enriquecido (sem statRefs).
+  const refs = player.statRefs || {};
 
   // Radar por percentil de posição (vindo de enrichPlayers); fallback se ausente.
   const r = player.radar;
@@ -220,19 +247,20 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
+      <div className="modal-card" onClick={e => e.stopPropagation()}
+        role="dialog" aria-modal="true" aria-labelledby="modal-player-name">
         <div className="modal-actions-top">
           {onEdit && (
-            <button className="modal-action-btn modal-action-edit" onClick={() => onEdit(player)} title="Editar Atleta">
+            <button className="modal-action-btn modal-action-edit" onClick={() => onEdit(player)} title="Editar Atleta" aria-label="Editar atleta">
               <i className="fa-solid fa-pen"></i>
             </button>
           )}
           {onDelete && (
-            <button className="modal-action-btn modal-action-delete" onClick={() => onDelete(player)} title="Excluir Atleta">
+            <button className="modal-action-btn modal-action-delete" onClick={() => onDelete(player)} title="Excluir Atleta" aria-label="Excluir atleta">
               <i className="fa-solid fa-trash"></i>
             </button>
           )}
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={onClose} title="Fechar" aria-label="Fechar">
             <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -245,7 +273,7 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
             <div className="modal-pos-badge" style={{ background: color }}>{positionLabel(player.position)}</div>
           </div>
           <div className="modal-title">
-            <h2>{player.name}</h2>
+            <h2 id="modal-player-name">{player.name}</h2>
             <div className="modal-sub">
               <span>{positionFullLabel(player.position)}</span>
               {player.team && <span>· {player.team}</span>}
@@ -290,12 +318,12 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
 
           <div className="modal-bars-wrap">
             <h4>Estatísticas Detalhadas</h4>
-            <StatBar label="Gols" statKey="goals" value={s.goals ?? 0} max={20} color="#f59e0b" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Assistências" statKey="assists" value={s.assists ?? 0} max={15} color="#14b8a6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Gols" statKey="goals" value={s.goals ?? 0} max={refs.goals ?? 20} color="#f59e0b" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Assistências" statKey="assists" value={s.assists ?? 0} max={refs.assists ?? 15} color="#14b8a6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
             <StatBar label="Precisão de Passe" statKey="passAcc" value={passAcc} max={100} unit="%" color="#3b82f6" /> {/* Not directly editable since it's derived */}
-            <StatBar label="Tackles" statKey="tackles" value={s.tackles ?? 0} max={250} color="#8b5cf6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Interceptações" statKey="interceptions" value={s.interceptions ?? 0} max={100} color="#ec4899" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
-            <StatBar label="Distância" statKey="distanceCoveredKm" value={distKm.toFixed(1)} max={300} unit="km" color="#06b6d4" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Tackles" statKey="tackles" value={s.tackles ?? 0} max={refs.tackles ?? 250} color="#8b5cf6" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Interceptações" statKey="interceptions" value={s.interceptions ?? 0} max={refs.interceptions ?? 100} color="#ec4899" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
+            <StatBar label="Distância" statKey="distanceCoveredKm" value={distKm.toFixed(1)} max={refs.distanceCoveredKm ?? 300} unit="km" color="#06b6d4" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
             <StatBar label="Cartões Amarelos" statKey="yellowCards" value={s.yellowCards ?? 0} max={15} color="#eab308" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
             <StatBar label="Cartões Vermelhos" statKey="redCards" value={s.redCards ?? 0} max={5} color="#ef4444" isAdmin={isAdmin} onStatEdit={(k, nv, ov) => onStatEdit(player, k, nv, ov)} />
           </div>

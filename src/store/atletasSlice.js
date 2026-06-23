@@ -4,8 +4,9 @@
  * @module store/atletasSlice
  */
 
-import { createSlice, createAsyncThunk, createEntityAdapter } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createEntityAdapter, createSelector } from '@reduxjs/toolkit';
 import { supabase } from '../lib/supabase.js';
+import { enrichPlayers } from '../utils/playerScore.js';
 
 /**
  * Thunk assíncrono para buscar todos os atletas do servidor.
@@ -145,5 +146,21 @@ export const {
   selectById: selectAtletaById,
   selectIds: selectAtletaIds
 } = atletasAdapter.getSelectors((state) => state.atletas);
+
+/**
+ * Seletor memoizado que enriquece a lista de atletas com o ScoutIQ Score.
+ *
+ * O score é RELATIVO ao pool inteiro (percentis por posição), então precisa ser
+ * calculado sobre a lista completa. Centralizar aqui (em vez de cada página chamar
+ * `enrichPlayers`) garante:
+ *  - notas consistentes entre todas as telas (mesmo pool sempre);
+ *  - cálculo feito UMA vez e compartilhado (memoiza enquanto a lista não muda).
+ *
+ * @type {(state: object) => import('../utils/playerScore.js').EnrichedAthlete[]}
+ */
+export const selectAtletasEnriquecidos = createSelector(
+  selectAllAtletas,
+  (atletas) => enrichPlayers(atletas)
+);
 
 export default atletasSlice.reducer;

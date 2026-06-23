@@ -49,6 +49,15 @@ const POSITION_WEIGHTS = {
 /** Todas as métricas que entram em medianas/percentis. */
 const METRIC_KEYS = ['goals90', 'assists90', 'defense90', 'passAcc', 'passVol90', 'dist90', 'discipline', 'availability'];
 
+/**
+ * Estatísticas BRUTAS (totais, "quanto maior melhor") cujo teto de barra é derivado
+ * do pool — o melhor da posição preenche a barra. Mantém as barras do modal
+ * comparáveis entre jogadores, em vez de tetos fixos arbitrários. Stats em que
+ * "mais é pior" (cartões) ou já normalizadas (passAcc é %) ficam de fora.
+ * @type {string[]}
+ */
+const RAW_BAR_KEYS = ['goals', 'assists', 'tackles', 'interceptions', 'distanceCoveredKm'];
+
 /** Número seguro (não-finito → 0). @param {*} v @returns {number} */
 const num = (v) => (Number.isFinite(v) ? v : 0);
 
@@ -66,19 +75,43 @@ function median(values) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-/**
- * Percentil por posto médio (midrank): (#abaixo + 0.5·#iguais) / n · 100.
- * Sempre em (0,100); para grupo de 1 elemento devolve 50 (sem pool de comparação).
- * @param {number} value @param {number[]} arr @returns {number}
- */
-function midrankPercentile(value, arr) {
-  const n = arr.length;
-  if (n === 0) return 50;
-  let below = 0, equal = 0;
-  for (const v of arr) {
-    if (v < value) below++;
-    else if (v === value) equal++;
+/** Cópia ordenada (asc) de um array numérico — base para percentis em O(log n). */
+const sortedCopy = (arr) => [...arr].sort((a, b) => a - b);
+
+/** Primeiro índice i com arr[i] >= value, em array ordenado asc (lower bound). */
+function lowerBound(arr, value) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] < value) lo = mid + 1;
+    else hi = mid;
   }
+  return lo;
+}
+
+/** Primeiro índice i com arr[i] > value, em array ordenado asc (upper bound). */
+function upperBound(arr, value) {
+  let lo = 0, hi = arr.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] <= value) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Percentil por posto médio (midrank) a partir de um array JÁ ORDENADO (asc):
+ * (#abaixo + 0.5·#iguais) / n · 100, em O(log n) via busca binária.
+ * Sempre em (0,100); para grupo de 1 elemento devolve 50 (sem pool de comparação).
+ * Semanticamente idêntico à varredura linear (mesmas contagens de < e ===).
+ * @param {number} value @param {number[]} sortedArr - Array ordenado asc. @returns {number}
+ */
+function midrankPercentile(value, sortedArr) {
+  const n = sortedArr.length;
+  if (n === 0) return 50;
+  const below = lowerBound(sortedArr, value);
+  const equal = upperBound(sortedArr, value) - below;
   return ((below + 0.5 * equal) / n) * 100;
 }
 
@@ -134,6 +167,7 @@ function rawMetrics(player) {
  * @property {number} scoutScore       - Combinação ajustável das três (perfil), 0-100.
  * @property {number} pricePercentile  - Percentil de preço dentro da posição (0-100).
  * @property {number} valueGapPct       - performanceScore − pricePercentile (>0 = mercado paga menos do que entrega).
+ * @property {Object<string, number>} statRefs - Teto por posição (max bruto) p/ barras relativas no modal.
  */
 
 /**
@@ -169,6 +203,17 @@ export function enrichPlayers(athletes, options = {}) {
     for (const k of METRIC_KEYS) medians[g][k] = median(list.map((it) => it.m[k]));
   }
 
+  // 2b) Teto de barra por posição (max bruto da posição) para as barras do modal
+  //     ficarem relativas aos pares. Floor de 1 evita divisão por zero.
+  const statRefs = {};
+  for (const [g, list] of Object.entries(groups)) {
+    statRefs[g] = {};
+    for (const k of RAW_BAR_KEYS) {
+      const maxVal = list.reduce((mx, it) => Math.max(mx, num((it.player.statistics || {})[k])), 0);
+      statRefs[g][k] = Math.max(maxVal, 1);
+    }
+  }
+
   // 3) Encolhimento bayesiano: puxa quem jogou pouco para a mediana da posição.
   for (const it of items) {
     const rel = it.m.minutes / (it.m.minutes + M0);
@@ -179,16 +224,18 @@ export function enrichPlayers(athletes, options = {}) {
     }
   }
 
-  // 4) Arrays por posição para o cálculo de percentis (métricas ajustadas + preço).
+  // 4) Arrays por posição JÁ ORDENADOS (métricas ajustadas + preço), para
+  //    percentis em O(log n) — ordena uma vez por posição, não por consulta.
   const arrays = {};
   for (const [g, list] of Object.entries(groups)) {
-    arrays[g] = { price: list.map((it) => num(it.player.marketValue)) };
-    for (const k of METRIC_KEYS) arrays[g][k] = list.map((it) => it.adj[k]);
+    arrays[g] = { price: sortedCopy(list.map((it) => num(it.player.marketValue))) };
+    for (const k of METRIC_KEYS) arrays[g][k] = sortedCopy(list.map((it) => it.adj[k]));
   }
 
   // 5) performanceScore (P) e percentil de preço.
   for (const it of items) {
-    const weights = POSITION_WEIGHTS[it.group] || POSITION_WEIGHTS.Outfield;
+    // groupOf() já garante uma chave válida em POSITION_WEIGHTS.
+    const weights = POSITION_WEIGHTS[it.group];
     let acc = 0, wsum = 0;
     for (const [k, w] of Object.entries(weights)) {
       acc += w * midrankPercentile(it.adj[k], arrays[it.group][k]);
@@ -205,7 +252,7 @@ export function enrichPlayers(athletes, options = {}) {
     it.proj = it.P * ageFactor(it.player.age);
   }
   const projArrays = {};
-  for (const [g, list] of Object.entries(groups)) projArrays[g] = list.map((it) => it.proj);
+  for (const [g, list] of Object.entries(groups)) projArrays[g] = sortedCopy(list.map((it) => it.proj));
 
   // 7) projectionScore (J), scoutScore, perfil de radar e montagem final.
   const { wP, wV, wJ } = profile;
@@ -241,6 +288,7 @@ export function enrichPlayers(athletes, options = {}) {
       pricePercentile: Math.round(it.pricePct),
       valueGapPct: Math.round(it.valueGap),
       radar,
+      statRefs: statRefs[it.group],
     };
   });
 }

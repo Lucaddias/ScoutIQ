@@ -4,7 +4,6 @@
  */
 import React, { useState, useMemo, useReducer } from 'react';
 import PlayerCard from '../../components/PlayerCard.jsx';
-import { enrichPlayers } from '../../utils/playerScore.js';
 import { parseBR, positionFullLabel } from '../../utils/formatters.js';
 import { TIMES_BR } from '../../utils/constants.js';
 import { useAtletas } from '../../hooks/useAtletas.js';
@@ -60,12 +59,10 @@ const initialFilterState = {
  * @returns {React.ReactElement} A página de atletas renderizada.
  */
 export default function Atletas({ onPlayerClick, initialPosition }) {
-  // Leitura do store via hook compartilhado (fetch automático quando idle)
-  const { atletas: jogadoresDoBanco, loading, status, error, retry } = useAtletas();
+  // Leitura do store via hook compartilhado (fetch automático quando idle).
+  // `players` já vem enriquecido com o ScoutIQ Score (selector memoizado, pool completo).
+  const { players, loading, status, error, retry } = useAtletas();
   const dispatch = useDispatch();
-
-  // Os dados crus do Redux são enriquecidos com o score calculado antes de serem usados
-  const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
   // Filtros
   const [filters, dispatchFilter] = useReducer(filterReducer, {

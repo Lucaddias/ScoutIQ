@@ -4,7 +4,6 @@
  */
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { enrichPlayers } from '../../utils/playerScore.js';
 import { useAtletas } from '../../hooks/useAtletas.js';
 import { LoadingState, ErrorState } from '../../components/FetchState.jsx';
 import {
@@ -69,15 +68,14 @@ export default function Estatisticas({ onPlayerClick }) {
   const role = user?.role || 'user';
   const isAdmin = role === 'admin';
 
-  const { atletas: jogadoresDoBanco, loading, status: atletasStatus, error: atletasError, retry } = useAtletas();
+  // `players` já vem enriquecido com o ScoutIQ Score (selector memoizado, pool completo).
+  const { players, loading, status: atletasStatus, error: atletasError, retry } = useAtletas();
   const dispatch = useDispatch();
 
   /* Busca os registros de estatísticas ao montar (atletas vêm do useAtletas) */
   useEffect(() => {
     dispatch(fetchEstatisticas());
   }, [dispatch]);
-
-  const players = useMemo(() => enrichPlayers(jogadoresDoBanco), [jogadoresDoBanco]);
 
   /* ─── CRUD State — agora vem do Redux (persistido no json-server) ─── */
   const statKeys = useMemo(() => getStatKeys(), []);
