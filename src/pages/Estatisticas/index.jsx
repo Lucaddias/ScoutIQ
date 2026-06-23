@@ -16,41 +16,19 @@ import {
 } from '../../store/estatisticasSlice';
 import { formatBRL, positionFullLabel } from '../../utils/formatters.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import PlayerCard from '../../components/PlayerCard.jsx';
-// Chaves de estatísticas disponíveis (anteriormente lidas do JSON local)
-const STAT_KEYS_STATIC = [
-  'gamesPlayed', 'goals', 'assists', 'totalPasses', 'accuratePasses',
-  'tackles', 'interceptions', 'yellowCards', 'redCards', 'minutesPlayed', 'distanceCoveredKm',
-];
+import TopRankings from './TopRankings.jsx';
+import PositionSection from './PositionSection.jsx';
+import StatFormModal from './StatFormModal.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
+import { POSITION_COLORS, STAT_KEYS, STAT_LABELS, POSITIONS_DB } from '../../utils/constants.js';
 import './Estatisticas.css';
-
-const POS_ORDER = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
-const POS_COLORS = { Forward: '#f59e0b', Midfielder: '#3b82f6', Defender: '#14b8a6', Goalkeeper: '#8b5cf6' };
-
-/*
- * STAT_LABELS — mapeamento das chaves técnicas do JSON para labels legíveis em PT-BR.
- * Centraliza a tradução para uso tanto na tabela quanto no modal de criação/edição.
- */
-const STAT_LABELS = {
-  gamesPlayed: 'Jogos Disputados',
-  goals: 'Gols',
-  assists: 'Assistências',
-  totalPasses: 'Passes Totais',
-  accuratePasses: 'Passes Certos',
-  tackles: 'Desarmes',
-  interceptions: 'Interceptações',
-  yellowCards: 'Cartões Amarelos',
-  redCards: 'Cartões Vermelhos',
-  minutesPlayed: 'Minutos Jogados',
-  distanceCoveredKm: 'Distância (km)',
-};
 
 /*
  * getStatKeys — extrai dinamicamente as chaves de estatísticas disponíveis no JSON.
  * Usa o primeiro atleta válido como referência, garantindo que o admin só possa
  * selecionar tipos de estatísticas que realmente existem no banco de dados.
  */
-const getStatKeys = () => STAT_KEYS_STATIC;
+const getStatKeys = (atletas) => atletas.length > 0 ? Object.keys(atletas[0].statistics || {}) : STAT_KEYS;
 
 /**
  * Página de Estatísticas. Exibe sumário geral, cards por posição (expansíveis),
@@ -78,7 +56,7 @@ export default function Estatisticas({ onPlayerClick }) {
   }, [dispatch]);
 
   /* ─── CRUD State — agora vem do Redux (persistido no json-server) ─── */
-  const statKeys = useMemo(() => getStatKeys(), []);
+  const statKeys = useMemo(() => getStatKeys(players), [players]);
   const registros = useSelector(selectAllEstatisticas);
   const statsLoading = useSelector((state) => state.estatisticas.loading);
 
@@ -86,6 +64,7 @@ export default function Estatisticas({ onPlayerClick }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState({
     jogadorId: '',
     jogador: '',
@@ -158,7 +137,7 @@ export default function Estatisticas({ onPlayerClick }) {
   const stats = useMemo(() => {
     const total = players.length;
     const byPos = {};
-    POS_ORDER.forEach(pos => {
+    POSITIONS_DB.forEach(pos => {
       const group = players.filter(p => p.position === pos);
       if (!group.length) return;
       byPos[pos] = {
@@ -270,13 +249,14 @@ export default function Estatisticas({ onPlayerClick }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    /* Valida que um jogador foi selecionado do dropdown */
     if (!formData.jogadorId) {
+      setFormError('Selecione um jogador na lista.');
       setPlayerDropdownOpen(true);
       return;
     }
 
     setSaving(true);
+    setFormError('');
 
     try {
       if (editingRecord) {
@@ -292,6 +272,7 @@ export default function Estatisticas({ onPlayerClick }) {
         /* CREATE — modo bulk */
         const validEntries = bulkEntries.filter(e => e.valor && Number(e.valor) > 0);
         if (validEntries.length === 0) {
+          setFormError('Adicione ao menos uma estatística válida.');
           setSaving(false);
           return;
         }
@@ -308,9 +289,7 @@ export default function Estatisticas({ onPlayerClick }) {
       }
       closeModal();
     } catch (err) {
-      // Mantém o modal aberto para o usuário não perder os dados digitados
-      console.error('Erro ao salvar:', err);
-      alert(`Erro ao salvar estatística: ${err.message || 'Tente novamente.'}`);
+      setFormError(`Erro ao salvar estatística: ${err.message || 'Tente novamente.'}`);
     } finally {
       setSaving(false);
     }
@@ -485,377 +464,56 @@ export default function Estatisticas({ onPlayerClick }) {
         )}
       </div>
 
-      {/* By Position — Clickable */}
-      <div className="stats-section">
-        <h2>Por Posição <span className="section-hint">(clique para ver os jogadores)</span></h2>
-        <div className="pos-grid">
-          {POS_ORDER.map(pos => {
-            const d = stats.byPos[pos];
-            if (!d) return null;
-            const isExpanded = expandedPos === pos;
-            return (
-              <div
-                className={`pos-card ${isExpanded ? 'expanded' : ''}`}
-                key={pos}
-                style={{ '--pos-color': POS_COLORS[pos] }}
-                onClick={() => togglePos(pos)}
-              >
-                <div className="pos-badge" style={{ background: POS_COLORS[pos] }}>
-                  {positionFullLabel(pos)}
-                </div>
-                <div className="pos-count">{d.count} atletas</div>
-                <div className="pos-rows">
-                  <div><span>Valor médio</span><strong>{formatBRL(d.avgValue)}</strong></div>
-                  <div><span>Salário médio</span><strong>{formatBRL(d.avgSalary)}/mês</strong></div>
-                  <div><span>Score médio</span><strong style={{ color: POS_COLORS[pos] }}>{d.avgScore}</strong></div>
-                </div>
-                <div className="pos-expand-hint">
-                  <i className={`fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
-                  {isExpanded ? 'Fechar lista' : 'Ver jogadores'}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <PositionSection 
+        stats={stats} 
+        expandedPos={expandedPos} 
+        togglePos={togglePos} 
+        onPlayerClick={onPlayerClick} 
+      />
 
-        {/* Expanded player list for selected position */}
-        {expandedPos && stats.byPos[expandedPos] && (
-          <div className="pos-expanded-list">
-            <h3 style={{ color: POS_COLORS[expandedPos] }}>
-              <i className="fa-solid fa-list"></i> {positionFullLabel(expandedPos)}s — {stats.byPos[expandedPos].count} atletas
-            </h3>
-            <div className="pos-players">
-              {stats.byPos[expandedPos].players.map(p => (
-                <PlayerCard key={p.id} player={p} onClick={onPlayerClick} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <TopRankings 
+        stats={stats} 
+        onPlayerClick={onPlayerClick} 
+      />
 
-      {/* Top Lists */}
-      <div className="stats-tops-grid">
-        <div className="top-card">
-          <h3><i className="fa-solid fa-futbol" style={{ color: '#f59e0b' }}></i> Top Goleadores</h3>
-          {stats.topScorers.map((p, i) => (
-            <div className="top-row clickable-row" key={p.id} onClick={() => onPlayerClick && onPlayerClick(p)}>
-              <span className="top-rank">{i + 1}</span>
-              <img src={p.profileImageURL} alt={p.name} className="top-avatar"
-                onError={e => { e.target.style.display = 'none'; }} />
-              <div className="top-info">
-                <div className="top-name">{p.name}</div>
-                <div className="top-sub">{p.team}</div>
-              </div>
-              <div className="top-value">{p.statistics?.goals ?? 0} <span>gols</span></div>
-            </div>
-          ))}
-        </div>
-
-        <div className="top-card">
-          <h3><i className="fa-solid fa-handshake" style={{ color: '#14b8a6' }}></i> Top Assistências</h3>
-          {stats.topAssists.map((p, i) => (
-            <div className="top-row clickable-row" key={p.id} onClick={() => onPlayerClick && onPlayerClick(p)}>
-              <span className="top-rank">{i + 1}</span>
-              <img src={p.profileImageURL} alt={p.name} className="top-avatar"
-                onError={e => { e.target.style.display = 'none'; }} />
-              <div className="top-info">
-                <div className="top-name">{p.name}</div>
-                <div className="top-sub">{p.team}</div>
-              </div>
-              <div className="top-value">{p.statistics?.assists ?? 0} <span>assist.</span></div>
-            </div>
-          ))}
-        </div>
-
-        <div className="top-card">
-          <h3><i className="fa-solid fa-star" style={{ color: '#8b5cf6' }}></i> Maior Score</h3>
-          {stats.topScore.map((p, i) => (
-            <div className="top-row clickable-row" key={p.id} onClick={() => onPlayerClick && onPlayerClick(p)}>
-              <span className="top-rank">{i + 1}</span>
-              <img src={p.profileImageURL} alt={p.name} className="top-avatar"
-                onError={e => { e.target.style.display = 'none'; }} />
-              <div className="top-info">
-                <div className="top-name">{p.name}</div>
-                <div className="top-sub">{p.team}</div>
-              </div>
-              <div className="top-value score-col">{p.score}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ──────────────────────────────────────── */}
-      {/* MODAL — Criar / Editar Estatística */}
-      {/* ──────────────────────────────────────── */}
-      {modalOpen && (
-        <div className="crud-modal-overlay" onClick={closeModal}>
-          <div className="crud-modal" onClick={e => e.stopPropagation()}>
-            <div className="crud-modal-header">
-              <h3>
-                <i className={`fa-solid ${editingRecord ? 'fa-pen-to-square' : 'fa-plus-circle'}`}></i>
-                {editingRecord ? 'Editar Estatística' : 'Nova Estatística'}
-              </h3>
-              <button className="crud-modal-close" onClick={closeModal}>
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="crud-modal-form">
-              <div className="crud-field" ref={playerFieldRef}>
-                <label htmlFor="campo-jogador">Jogador</label>
-                <div className="player-search-wrapper">
-                  <input
-                    id="campo-jogador"
-                    type="text"
-                    autoComplete="off"
-                    required
-                    placeholder="Buscar jogador por nome ou clube..."
-                    value={playerSearch}
-                    onChange={e => {
-                      setPlayerSearch(e.target.value);
-                      setPlayerDropdownOpen(true);
-                      /* Limpa a seleção se editar o texto manualmente */
-                      if (formData.jogador && e.target.value !== formData.jogador) {
-                        setFormData(prev => ({ ...prev, jogadorId: '', jogador: '', jogadorImg: '', jogadorTeam: '' }));
-                      }
-                    }}
-                    onFocus={() => setPlayerDropdownOpen(true)}
-                  />
-                  {/* Chip do jogador selecionado */}
-                  {formData.jogadorId && (
-                    <div className="player-selected-chip">
-                      <img
-                        src={formData.jogadorImg}
-                        alt=""
-                        onError={e => { e.target.style.display = 'none'; }}
-                      />
-                      <span>{formData.jogador}</span>
-                      <span className="player-chip-team">· {formData.jogadorTeam}</span>
-                      <button
-                        type="button"
-                        className="player-chip-clear"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, jogadorId: '', jogador: '', jogadorImg: '', jogadorTeam: '' }));
-                          setPlayerSearch('');
-                        }}
-                      >
-                        <i className="fa-solid fa-xmark"></i>
-                      </button>
-                    </div>
-                  )}
-                  {/* Dropdown de resultados */}
-                  {playerDropdownOpen && !formData.jogadorId && (
-                    <div className="player-dropdown">
-                      {filteredPlayers.length === 0 ? (
-                        <div className="player-dropdown-empty">
-                          <i className="fa-solid fa-magnifying-glass"></i>
-                          Nenhum jogador encontrado
-                        </div>
-                      ) : (
-                        filteredPlayers.map(p => (
-                          <div
-                            key={p.id}
-                            className="player-dropdown-item"
-                            onClick={() => selectPlayer(p)}
-                          >
-                            <img
-                              src={p.profileImageURL}
-                              alt={p.name}
-                              className="player-dropdown-avatar"
-                              onError={e => {
-                                e.target.onerror = null;
-                                e.target.src = '';
-                                e.target.style.display = 'none';
-                                e.target.nextElementSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div className="player-dropdown-fallback" style={{ display: 'none' }}>
-                              {p.name[0]}
-                            </div>
-                            <div className="player-dropdown-info">
-                              <span className="player-dropdown-name">{p.name}</span>
-                              <span className="player-dropdown-meta">
-                                {p.team}
-                                {p.position && <> · {positionFullLabel(p.position)}</>}
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-                {/* Hidden required input para validação do form */}
-                <input
-                  type="hidden"
-                  name="jogadorId"
-                  value={formData.jogadorId}
-                  required
-                />
-              </div>
-
-              {/* ─── Modo EDIÇÃO: campos single (como antes) ─── */}
-              {editingRecord ? (
-                <>
-                  <div className="crud-field">
-                    <label htmlFor="campo-tipo-estatistica">Tipo de Estatística</label>
-                    <select
-                      id="campo-tipo-estatistica"
-                      required
-                      value={formData.tipoEstatistica}
-                      onChange={e => handleFormChange('tipoEstatistica', e.target.value)}
-                    >
-                      {statKeys.map(key => (
-                        <option key={key} value={key}>
-                          {STAT_LABELS[key] || key}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="crud-field">
-                    <label htmlFor="campo-valor">Valor</label>
-                    <input
-                      id="campo-valor"
-                      type="number"
-                      required
-                      min="0"
-                      step="any"
-                      placeholder="Ex: 12"
-                      value={formData.valor}
-                      onChange={e => handleFormChange('valor', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="crud-field">
-                    <label htmlFor="campo-data">Data</label>
-                    <input
-                      id="campo-data"
-                      type="date"
-                      required
-                      value={formData.data}
-                      onChange={e => handleFormChange('data', e.target.value)}
-                    />
-                  </div>
-                </>
-              ) : (
-                /* ─── Modo CRIAÇÃO: formulário dinâmico em lote ─── */
-                <>
-                  <div className="bulk-entries-section">
-                    <label className="bulk-section-label">
-                      <i className="fa-solid fa-layer-group"></i>
-                      Estatísticas ({bulkEntries.length})
-                    </label>
-
-                    {bulkEntries.map((entry, idx) => (
-                      <div className="bulk-entry-row" key={idx}>
-                        <select
-                          value={entry.tipoEstatistica}
-                          onChange={e => updateBulkEntry(idx, 'tipoEstatistica', e.target.value)}
-                          className="bulk-select"
-                        >
-                          {statKeys.map(key => (
-                            <option key={key} value={key}>
-                              {STAT_LABELS[key] || key}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          placeholder="Valor"
-                          value={entry.valor}
-                          onChange={e => updateBulkEntry(idx, 'valor', e.target.value)}
-                          className="bulk-input"
-                          required
-                        />
-                        {bulkEntries.length > 1 && (
-                          <button
-                            type="button"
-                            className="bulk-remove-btn"
-                            onClick={() => removeBulkEntry(idx)}
-                            title="Remover linha"
-                          >
-                            <i className="fa-solid fa-trash-can"></i>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-
-                    <button type="button" className="bulk-add-btn" onClick={addBulkEntry}>
-                      <i className="fa-solid fa-plus"></i>
-                      Adicionar outra estatística
-                    </button>
-                  </div>
-
-                  <div className="crud-field">
-                    <label htmlFor="campo-data-bulk">Data</label>
-                    <input
-                      id="campo-data-bulk"
-                      type="date"
-                      required
-                      value={bulkData}
-                      onChange={e => setBulkData(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="crud-modal-actions">
-                <button type="submit" className="crud-btn crud-btn-save" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <i className="fa-solid fa-spinner fa-spin"></i>
-                      Salvando...
-                    </>
-                  ) : editingRecord ? (
-                    <>
-                      <i className="fa-solid fa-check"></i>
-                      Salvar Alterações
-                    </>
-                  ) : (
-                    <>
-                      <i className="fa-solid fa-paper-plane"></i>
-                      Enviar Tudo ({bulkEntries.length})
-                    </>
-                  )}
-                </button>
-                <button type="button" className="crud-btn crud-btn-cancel" onClick={closeModal} disabled={saving}>
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <StatFormModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+        editingRecord={editingRecord}
+        formData={formData}
+        setFormData={setFormData}
+        handleFormChange={handleFormChange}
+        bulkEntries={bulkEntries}
+        addBulkEntry={addBulkEntry}
+        updateBulkEntry={updateBulkEntry}
+        removeBulkEntry={removeBulkEntry}
+        bulkData={bulkData}
+        setBulkData={setBulkData}
+        saving={saving}
+        formError={formError}
+        playerFieldRef={playerFieldRef}
+        playerSearch={playerSearch}
+        setPlayerSearch={setPlayerSearch}
+        playerDropdownOpen={playerDropdownOpen}
+        setPlayerDropdownOpen={setPlayerDropdownOpen}
+        filteredPlayers={filteredPlayers}
+        selectPlayer={selectPlayer}
+        statKeys={statKeys}
+      />
 
       {/* ──────────────────────────────────────── */}
       {/* MODAL — Confirmação de Exclusão */}
       {/* ──────────────────────────────────────── */}
-      {deleteTarget && (
-        <div className="crud-modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="crud-modal crud-modal-delete" onClick={e => e.stopPropagation()}>
-            <div className="crud-delete-icon">
-              <i className="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <h3>Confirmar Exclusão</h3>
-            <p>
-              Deseja remover o registro de <strong>{STAT_LABELS[deleteTarget.tipoEstatistica] || deleteTarget.tipoEstatistica}</strong> do jogador <strong>{deleteTarget.jogador}</strong>?
-            </p>
-            <p className="delete-warning">Esta ação não pode ser desfeita.</p>
-            <div className="crud-modal-actions">
-              <button className="crud-btn crud-btn-danger" onClick={handleDelete}>
-                <i className="fa-solid fa-trash-can"></i>
-                Sim, Excluir
-              </button>
-              <button className="crud-btn crud-btn-cancel" onClick={() => setDeleteTarget(null)}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Confirmar Exclusão"
+        message={deleteTarget ? <span>Deseja remover o registro de <strong>{STAT_LABELS[deleteTarget.tipoEstatistica] || deleteTarget.tipoEstatistica}</strong> do jogador <strong>{deleteTarget.jogador}</strong>?</span> : ''}
+        confirmText="Sim, Excluir"
+        variant="danger"
+      />
     </div>
   );
 }

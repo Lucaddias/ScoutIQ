@@ -2,6 +2,7 @@
  * Algoritmo de Geração de Cenários de Compra de Jogadores.
  * @module utils/algorithm
  */
+import { positionFullLabel } from './formatters.js';
 
 /**
  * Representa um jogador com sua pontuação calculada.
@@ -63,7 +64,7 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
     let usedBudget = 0;
     let usedSalary = 0;
 
-    const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
+
     const positions = Object.entries(slotsObj).filter(([, count]) => count > 0);
 
     for (const [pos, count] of positions) {
@@ -83,7 +84,7 @@ export function gerarCenarios(players, { orcamento, tetoSalarial, vagasArray }) 
         }
       }
       if (picked < count) {
-        const posLabel = POS_PT[pos] || pos;
+        const posLabel = positionFullLabel(pos);
         warnings.push(`${count - picked} vaga(s) de ${posLabel} não puderam ser preenchidas dentro do orçamento.`);
       }
     }

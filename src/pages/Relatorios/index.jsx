@@ -6,6 +6,8 @@ import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchRelatorios, deletarRelatorio, selecionarPacoteOficial, renomearRelatorio, fetchPropostas, deletarProposta } from '../../store/apoioSlice';
 import PlayerCard from '../../components/PlayerCard.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
+import ModalNomeRelatorio from '../../components/ModalNomeRelatorio.jsx';
 import { formatBRL } from '../../utils/formatters.js';
 import './Relatorios.css';
 
@@ -23,6 +25,10 @@ export default function Relatorios({ filtroInicial }) {
   const dispatch = useDispatch();
   const [propostaSelecionada, setPropostaSelecionada] = useState(null);
   const [search, setSearch] = useState('');
+  
+  const [deletePropostaTarget, setDeletePropostaTarget] = useState(null);
+  const [deleteRelatorioTarget, setDeleteRelatorioTarget] = useState(null);
+  const [renameRelatorioTarget, setRenameRelatorioTarget] = useState(null);
 
   // Determina permanentemente qual seção esta instância exibe
   const modo = filtroInicial || 'relatorios';
@@ -325,7 +331,7 @@ export default function Relatorios({ filtroInicial }) {
                         Abrir <i className="fa-solid fa-arrow-right"></i>
                       </button>
                       <button
-                        onClick={() => { if (window.confirm(`Excluir proposta de ${p.jogadorNome}?`)) dispatch(deletarProposta(p.id)); }}
+                        onClick={() => setDeletePropostaTarget(p)}
                         style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: 'none', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer' }}
                         title="Excluir Proposta"
                       >
@@ -382,11 +388,7 @@ export default function Relatorios({ filtroInicial }) {
                 <div style={{ display: 'flex', gap: '12px' }}>
                   {/* Botão de Excluir */}
                   <button 
-                    onClick={() => {
-                      if(window.confirm('Deseja excluir este relatório do banco de dados?')) {
-                        dispatch(deletarRelatorio(relatorio.id));
-                      }
-                    }} 
+                    onClick={() => setDeleteRelatorioTarget(relatorio)} 
                     style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer', transition: '0.2s' }}
                     title="Excluir Relatório"
                   >
@@ -395,12 +397,7 @@ export default function Relatorios({ filtroInicial }) {
 
                   {/* NOVO: Botão de Renomear (Editar) */}
                   <button 
-                    onClick={() => {
-                      const novoNome = window.prompt("Digite o novo nome para o relatório:", relatorio.nome);
-                      if (novoNome && novoNome.trim() !== '') {
-                        dispatch(renomearRelatorio({ id: relatorio.id, novoNome }));
-                      }
-                    }} 
+                    onClick={() => setRenameRelatorioTarget(relatorio)} 
                     style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', border: 'none', borderRadius: '8px', padding: '10px 16px', cursor: 'pointer', transition: '0.2s' }}
                     title="Renomear Relatório"
                   >
@@ -422,6 +419,37 @@ export default function Relatorios({ filtroInicial }) {
           )}
         </>
       )}
+
+      <ConfirmModal
+        isOpen={!!deletePropostaTarget}
+        onClose={() => setDeletePropostaTarget(null)}
+        onConfirm={() => {
+          dispatch(deletarProposta(deletePropostaTarget.id));
+          setDeletePropostaTarget(null);
+        }}
+        title="Excluir Proposta"
+        message={deletePropostaTarget ? `Excluir proposta de ${deletePropostaTarget.jogadorNome}? Esta ação não pode ser desfeita.` : ''}
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteRelatorioTarget}
+        onClose={() => setDeleteRelatorioTarget(null)}
+        onConfirm={() => {
+          dispatch(deletarRelatorio(deleteRelatorioTarget.id));
+          setDeleteRelatorioTarget(null);
+        }}
+        title="Excluir Relatório"
+        message={deleteRelatorioTarget ? `Deseja excluir o relatório "${deleteRelatorioTarget.nome}" do banco de dados?` : ''}
+      />
+
+      <ModalNomeRelatorio
+        isOpen={!!renameRelatorioTarget}
+        onClose={() => setRenameRelatorioTarget(null)}
+        onConfirm={(novoNome) => {
+          dispatch(renomearRelatorio({ id: renameRelatorioTarget.id, novoNome }));
+          setRenameRelatorioTarget(null);
+        }}
+      />
     </div>
   );
 }

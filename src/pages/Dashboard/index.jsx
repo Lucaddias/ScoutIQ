@@ -14,14 +14,13 @@ import Perfil from '../Perfil/index.jsx';
 import AdminPage from '../Admin/index.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useDispatch } from 'react-redux';
-import { atualizarAtletaMock, deletarAtletaMock } from '../../store/atletasSlice';
+import { atualizarAtleta, deletarAtleta } from '../../store/atletasSlice';
 import { ajustarStatAtleta } from '../../store/estatisticasSlice';
-import { TIMES_BR } from '../../utils/constants.js';
+import { TIMES_BR, POSITIONS_DB } from '../../utils/constants.js';
+import { positionFullLabel } from '../../utils/formatters.js';
 import PlayerModal from '../../components/PlayerModal.jsx';
+import ConfirmModal from '../../components/ConfirmModal.jsx';
 import './Dashboard.css';
-
-const POSITIONS = ['Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
-const POS_PT = { Forward: 'Atacante', Midfielder: 'Meia', Defender: 'Zagueiro', Goalkeeper: 'Goleiro' };
 
 const inputStyle = {
   padding: '10px 12px', borderRadius: '6px',
@@ -54,6 +53,7 @@ const Dashboard = ({ page, onNavigate }) => {
   const [modalPlayer, setModalPlayer] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editPlayer, setEditPlayer] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const canAccess = (required) => required.includes(role);
 
@@ -111,16 +111,21 @@ const Dashboard = ({ page, onNavigate }) => {
   };
 
   const handleDeletePlayer = (player) => {
-    if (window.confirm(`Deseja mesmo remover ${player.name} da base de dados?`)) {
-      dispatch(deletarAtletaMock(player.id));
+    setDeleteTarget(player);
+  };
+
+  const confirmDeletePlayer = () => {
+    if (deleteTarget) {
+      dispatch(deletarAtleta(deleteTarget.id));
       setModalPlayer(null);
+      setDeleteTarget(null);
     }
   };
 
   const handleSalvarEdicao = (e) => {
     e.preventDefault();
     const { _marketValueDisplay, _salaryDisplay, ...playerData } = editPlayer;
-    dispatch(atualizarAtletaMock(playerData));
+    dispatch(atualizarAtleta(playerData));
     setEditPlayer(null);
   };
 
@@ -199,7 +204,7 @@ const Dashboard = ({ page, onNavigate }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Posição</label>
                 <select value={editPlayer.position} onChange={e => setEditPlayer({ ...editPlayer, position: e.target.value })} style={inputStyle}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{POS_PT[p]}</option>)}
+                  {POSITIONS_DB.map(p => <option key={p} value={p}>{positionFullLabel(p)}</option>)}
                 </select>
               </div>
 
@@ -264,6 +269,16 @@ const Dashboard = ({ page, onNavigate }) => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeletePlayer}
+        title="Excluir Jogador"
+        message={deleteTarget ? `Deseja mesmo remover ${deleteTarget.name} da base de dados? Esta ação não pode ser desfeita.` : ''}
+        confirmText="Sim, excluir"
+        variant="danger"
+      />
     </div>
   );
 };

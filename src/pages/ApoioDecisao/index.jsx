@@ -124,16 +124,19 @@ export default function ApoioDecisao({ onNavigate }) {
   /*
    * FUNÇÃO 2: Disparada pelo Modal quando o usuário clica em "Gerar Relatório"
    */
-  const confirmarSalvamento = (nomeDigitado) => {
+  const confirmarSalvamento = async (nomeDigitado) => {
     const pacoteAtivo = cenariosGerados[`cenario${abaAtiva}`];
     
-    dispatch(salvarPacoteOficial({ 
-      pacoteArray: pacoteAtivo, 
-      nomeRelatorio: nomeDigitado 
-    })).then(() => {
+    try {
+      await dispatch(salvarPacoteOficial({ 
+        pacoteArray: pacoteAtivo, 
+        nomeRelatorio: nomeDigitado 
+      })).unwrap();
       setIsModalOpen(false); // Fecha o modal
       onNavigate('relatorios_elenco'); // vai direto para Relatórios de Elenco
-    });
+    } catch (err) {
+      alert(`Erro ao salvar relatório: ${err.message}`);
+    }
   };
 
   const pacoteAtivo = cenariosGerados ? cenariosGerados[`cenario${abaAtiva}`] ?? [] : [];

@@ -14,8 +14,7 @@ import yup from '../../utils/yupConfig.js';
 import { formatBRL } from '../../utils/formatters.js';
 import './Admin.css';
 
-const ROLE_LABELS = { admin: 'Administrador', scout: 'Olheiro', user: 'Usuário' };
-const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
+import { ROLE_LABELS, ROLE_COLORS } from '../../utils/constants.js';
 
 const jogadorSchema = yup.object().shape({
   name: yup.string().max(100).required(),

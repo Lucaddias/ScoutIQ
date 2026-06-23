@@ -18,7 +18,7 @@ import { supabase } from '../lib/supabase.js';
 const fetchAtleta = async (id) => {
   const { data, error } = await supabase
     .from('athletes')
-    .select('*')
+    .select('id, statistics')
     .eq('id', id)
     .single();
   if (error) throw new Error(`Atleta ${id} não encontrado: ${error.message}`);
@@ -89,7 +89,13 @@ export const criarEstatistica = createAsyncThunk(
     if (error) throw new Error(`Erro ao criar estatística: ${error.message}`);
 
     // 2. Sincroniza com o atleta (dupla escrita)
-    await patchAtletaStat(registro.jogadorId, registro.tipoEstatistica, Number(registro.valor));
+    try {
+      await patchAtletaStat(registro.jogadorId, registro.tipoEstatistica, Number(registro.valor));
+    } catch (patchErr) {
+      // Compensatory transaction: Reverte a inserção se o atleta falhar
+      await supabase.from('estatisticas').delete().eq('id', data.id);
+      throw new Error(`Falha na atualização do atleta, registro revertido: ${patchErr.message}`);
+    }
 
     // 3. Re-busca a lista de atletas para o Redux refletir a mudança
     dispatch(fetchAtletas());
@@ -142,7 +148,13 @@ export const criarEstatisticasEmLote = createAsyncThunk(
       .from('athletes')
       .update({ statistics: stats })
       .eq('id', jogadorData.jogadorId);
-    if (updateError) throw new Error(`Erro ao atualizar atleta com estatísticas do lote: ${updateError.message}`);
+    
+    if (updateError) {
+      // Compensatory transaction: reverte lote
+      const ids = insertedRecords.map(r => r.id);
+      await supabase.from('estatisticas').delete().in('id', ids);
+      throw new Error(`Erro ao atualizar atleta com estatísticas do lote, registros revertidos: ${updateError.message}`);
+    }
 
     // 4. Re-busca atletas
     dispatch(fetchAtletas());
@@ -229,18 +241,7 @@ export const ajustarStatAtleta = createAsyncThunk(
     const delta = Number(valorNovo) - Number(valorAntigo);
     if (delta === 0) return null;
 
-    // 1. PATCH direto no atleta com o novo valor absoluto
-    const atleta = await fetchAtleta(jogadorId);
-    const stats = { ...(atleta.statistics || {}) };
-    stats[statKey] = Math.max(0, Number(valorNovo));
-
-    const { error: updateError } = await supabase
-      .from('athletes')
-      .update({ statistics: stats })
-      .eq('id', jogadorId);
-    if (updateError) throw new Error(`Erro ao ajustar estatísticas do atleta: ${updateError.message}`);
-
-    // 2. Cria registro de auditoria em estatisticas
+    // 1. Cria registro de auditoria em estatisticas
     const auditRecord = {
       jogadorId,
       jogador,
@@ -258,6 +259,22 @@ export const ajustarStatAtleta = createAsyncThunk(
       .select()
       .single();
     if (insertError) throw new Error(`Erro ao registrar auditoria de ajuste: ${insertError.message}`);
+
+    // 2. PATCH direto no atleta com o novo valor absoluto
+    const atleta = await fetchAtleta(jogadorId);
+    const stats = { ...(atleta.statistics || {}) };
+    stats[statKey] = Math.max(0, Number(valorNovo));
+
+    const { error: updateError } = await supabase
+      .from('athletes')
+      .update({ statistics: stats })
+      .eq('id', jogadorId);
+      
+    if (updateError) {
+      // Compensatory transaction
+      await supabase.from('estatisticas').delete().eq('id', created.id);
+      throw new Error(`Erro ao ajustar estatísticas do atleta, histórico revertido: ${updateError.message}`);
+    }
 
     // 3. Re-busca atletas
     dispatch(fetchAtletas());

@@ -6,12 +6,7 @@ import React from 'react';
 import { formatBRL, positionLabel, positionFullLabel } from '../utils/formatters.js';
 import './PlayerModal.css';
 
-const POS_COLORS = {
-  Forward:    '#f59e0b',
-  Midfielder: '#3b82f6',
-  Defender:   '#14b8a6',
-  Goalkeeper: '#8b5cf6',
-};
+import { POSITION_COLORS } from '../utils/constants.js';
 
 /* ── Radar de Perfil (5 eixos, SVG) ── */
 /**
@@ -226,7 +221,7 @@ export default function PlayerModal({ player, onClose, onEdit, onDelete, isAdmin
   if (!player) return null;
 
   const s = player.statistics || {};
-  const color = POS_COLORS[player.position] || '#6b7a99';
+  const color = POSITION_COLORS[player.position] || '#6b7a99';
   const passAcc = s.totalPasses > 0 ? ((s.accuratePasses / s.totalPasses) * 100).toFixed(1) : 0;
   const distKm = s.distanceCoveredKm || 0;
   // Tetos das barras relativos à posição (melhor da posição preenche a barra);

@@ -2,20 +2,11 @@
  * @file Cartão visual compacto para exibição de um atleta.
  * @module components/PlayerCard
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { formatBRL, positionLabel, positionFullLabel } from '../utils/formatters.js';
 import './PlayerCard.css';
 
-/**
- * Mapa de cores por posição para o badge do cartão.
- * @constant {Object.<string,string>}
- */
-const POSITION_COLORS = {
-  Forward:    '#f59e0b',
-  Midfielder: '#3b82f6',
-  Defender:   '#14b8a6',
-  Goalkeeper: '#8b5cf6',
-};
+import { POSITION_COLORS } from '../utils/constants.js';
 
 /**
  * Cartão visual compacto de um atleta exibindo avatar, nome, posição,
@@ -37,6 +28,7 @@ const POSITION_COLORS = {
  * @returns {React.ReactElement} O cartão renderizado.
  */
 export default function PlayerCard({ player, onClick }) {
+  const [imgError, setImgError] = useState(false);
   const color = POSITION_COLORS[player.position] || '#6b7a99';
   const posShort = positionLabel(player.position);
   const posFull  = positionFullLabel(player.position);
@@ -44,11 +36,15 @@ export default function PlayerCard({ player, onClick }) {
   return (
     <div className={`player-card ${onClick ? 'clickable' : ''}`} onClick={() => onClick && onClick(player)}>
       <div className="pc-avatar">
-        <img
-          src={player.profileImageURL}
-          alt={player.name}
-          onError={e => { e.target.onerror = null; e.target.src = ''; e.target.style.display = 'none'; e.target.parentElement.innerHTML = `<span class="pc-avatar-fallback">${player.name[0]}</span>`; }}
-        />
+        {imgError ? (
+          <span className="pc-avatar-fallback">{player.name[0]}</span>
+        ) : (
+          <img
+            src={player.profileImageURL}
+            alt={player.name}
+            onError={() => setImgError(true)}
+          />
+        )}
         <div className="pc-pos-badge" style={{ background: color }}>
           {posShort}
         </div>

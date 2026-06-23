@@ -6,8 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import './Sidebar.css';
 
-const ROLE_LABELS = { admin: 'Admin', scout: 'Olheiro', user: 'Usuário' };
-const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
+import { ROLE_LABELS_SHORT, ROLE_COLORS } from '../utils/constants.js';
 
 // Sub-itens da pasta "Relatórios"
 const RELATORIOS_SUB = [
@@ -157,7 +156,7 @@ export default function Sidebar({ page, onNavigate, isOpen }) {
           <div className="profile-info">
             <span className="profile-name">{user?.name || 'Usuário'}</span>
             <span className="profile-role" style={{ color: ROLE_COLORS[role] }}>
-              {ROLE_LABELS[role]}
+              {ROLE_LABELS_SHORT[role]}
             </span>
           </div>
         </button>

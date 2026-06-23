@@ -6,9 +6,7 @@ import React from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import './Perfil.css';
 
-const ROLE_LABELS = { admin: 'Administrador', scout: 'Olheiro', user: 'Usuário Comum' };
-const ROLE_COLORS = { admin: '#f87171', scout: '#fbbf24', user: '#60a5fa' };
-const ROLE_ICONS  = { admin: 'fa-shield-halved', scout: 'fa-binoculars', user: 'fa-user' };
+import { ROLE_LABELS, ROLE_COLORS, ROLE_ICONS } from '../../utils/constants.js';
 
 const ROLE_PERKS = {
   user: [

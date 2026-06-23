@@ -17,7 +17,7 @@ import { enrichPlayers } from '../utils/playerScore.js';
 export const fetchAtletas = createAsyncThunk('atletas/fetchAtletas', async () => {
   const { data, error } = await supabase
     .from('athletes')
-    .select('*');
+    .select('id, name, position, team, age, marketValue, monthlySalary, profileImageURL, statistics, nationality');
   if (error) throw new Error(error.message);
   return data;
 });
