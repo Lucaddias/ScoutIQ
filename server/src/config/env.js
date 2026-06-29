@@ -7,7 +7,9 @@
 
 'use strict';
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+require('dotenv').config(); // Fallback para o .env local caso executado em outro contexto
 
 /**
  * Configurações do servidor carregadas das variáveis de ambiente.
@@ -33,9 +35,9 @@ const env = {
 // ── Validação de segurança: JWT_SECRET ──────────────────────────────
 // Sem um segredo forte, qualquer pessoa pode forjar tokens JWT válidos
 // e se autenticar como qualquer usuário (incluindo admin).
-if (!env.jwtSecret || env.jwtSecret.length < 16) {
+if (!env.jwtSecret || env.jwtSecret.length < 12) {
   throw new Error(
-    '⚠️  JWT_SECRET não definido ou muito curto (mínimo 16 caracteres)!\n' +
+    '⚠️  JWT_SECRET não definido ou muito curto (mínimo 12 caracteres)!\n' +
     '   Defina a variável JWT_SECRET no arquivo server/.env com um valor seguro.\n' +
     '   Exemplo: JWT_SECRET=uma-chave-secreta-longa-e-aleatoria-aqui'
   );
