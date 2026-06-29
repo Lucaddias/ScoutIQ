@@ -37,7 +37,7 @@ export default function PlayerCard({ player, onClick }) {
     <div className={`player-card ${onClick ? 'clickable' : ''}`} onClick={() => onClick && onClick(player)}>
       <div className="pc-avatar">
         {imgError ? (
-          <span className="pc-avatar-fallback">{player.name[0]}</span>
+          <span className="pc-avatar-fallback">{(player.name || 'J').charAt(0).toUpperCase()}</span>
         ) : (
           <img
             src={player.profileImageURL}

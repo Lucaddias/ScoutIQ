@@ -30,4 +30,15 @@ const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
 };
 
+// ── Validação de segurança: JWT_SECRET ──────────────────────────────
+// Sem um segredo forte, qualquer pessoa pode forjar tokens JWT válidos
+// e se autenticar como qualquer usuário (incluindo admin).
+if (!env.jwtSecret || env.jwtSecret.length < 16) {
+  throw new Error(
+    '⚠️  JWT_SECRET não definido ou muito curto (mínimo 16 caracteres)!\n' +
+    '   Defina a variável JWT_SECRET no arquivo server/.env com um valor seguro.\n' +
+    '   Exemplo: JWT_SECRET=uma-chave-secreta-longa-e-aleatoria-aqui'
+  );
+}
+
 module.exports = env;
