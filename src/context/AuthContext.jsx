@@ -1,33 +1,19 @@
 /**
  * Módulo de Autenticação e Gestão de Sessões de Usuários.
- * Integra-se com o Supabase Auth e a tabela `profiles` para roles persistentes.
+ * Fala exclusivamente com a API Express (JWT). O Supabase não é mais acessado
+ * pelo navegador — o token é guardado no localStorage e enviado em cada requisição.
  * @module context/AuthContext
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase.js';
+import { api, setToken, clearToken, getToken } from '../lib/api.js';
 
 const AuthContext = createContext(null);
 
 /**
- * Busca o perfil de um usuário na tabela profiles pelo seu UUID.
- * @param {string} userId
- * @returns {Promise<{role: string, name: string, email: string}|null>}
- */
-async function fetchProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, name, role')
-    .eq('id', userId)
-    .single();
-  if (error) return null;
-  return data;
-}
-
-/**
  * Provedor de contexto de autenticação.
- * Roles são lidas da tabela `profiles` (fonte de verdade).
- * allUsers é carregado do Supabase, não do localStorage.
+ * A sessão é reconstruída a partir do JWT salvo (via `GET /auth/me`).
+ * allUsers é carregado da API (apenas para admins).
  */
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null);
@@ -35,172 +21,101 @@ export function AuthProvider({ children }) {
   const [allUsers, setAllUsers] = useState([]);
 
   /**
-   * Carrega todos os perfis do banco (para o painel admin).
+   * Carrega todos os perfis do servidor (apenas admin tem permissão).
    */
   const loadAllUsers = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, email, name, role')
-      .order('name', { ascending: true });
-    if (!error && data) setAllUsers(data);
+    try {
+      const { users } = await api.get('/users');
+      setAllUsers(users || []);
+    } catch {
+      setAllUsers([]);
+    }
   }, []);
 
   /**
-   * Constrói a sessão interna lendo a role da tabela profiles.
-   * A tabela profiles é a fonte de verdade para roles.
-   */
-  const buildSession = useCallback(async (supaUser) => {
-    if (!supaUser) return null;
-    const profile = await fetchProfile(supaUser.id);
-    const meta = supaUser.user_metadata || {};
-    return {
-      id:    supaUser.id,
-      email: supaUser.email,
-      name:  profile?.name || meta.name || supaUser.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'Usuário',
-      role:  profile?.role || meta.role || 'user',
-    };
-  }, []);
-
-  /**
-   * Inicializa a sessão ao montar e escuta eventos de autenticação.
-   * Usa apenas onAuthStateChange (Supabase v2 dispara INITIAL_SESSION imediatamente),
-   * evitando a dupla chamada paralela que dobrava o tempo de carregamento.
-   *
-   * IMPORTANTE: o callback NÃO pode ser async nem dar `await` em outras chamadas
-   * do Supabase. O auth-js segura um lock interno enquanto dispara o evento; awaitar
-   * uma query (ex.: profiles) dentro do callback exige o mesmo lock → deadlock, que
-   * trava o signInWithPassword (botão fica em "Aguarde..." para sempre).
-   * Por isso, o trabalho pesado (buildSession/loadAllUsers) é adiado com setTimeout(0),
-   * executando fora do lock. Ref: https://supabase.com/docs/reference/javascript/auth-onauthstatechange
+   * Restaura a sessão ao montar: se houver token salvo, busca o usuário em `/auth/me`.
+   * Também escuta o evento `scoutiq:unauthorized` (disparado pelo api.js em 401)
+   * para derrubar a sessão automaticamente quando o token expira/é inválido.
    */
   useEffect(() => {
-    let settled = false;
-    const finish = () => {
-      if (!settled) { settled = true; setLoading(false); }
-    };
+    let active = true;
 
-    // Timeout de segurança: projeto pausado ou rede lenta não travam a UI.
-    const safetyTimer = setTimeout(finish, 5000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          // Sessão rápida síncrona via JWT metadata (não bloqueia o lock do auth-js).
-          const meta = session.user.user_metadata || {};
-          setUser({
-            id:    session.user.id,
-            email: session.user.email,
-            name:  meta.name || session.user.email?.split('@')[0]?.replace(/[._]/g, ' ')?.replace(/\b\w/g, c => c.toUpperCase()) || 'Usuário',
-            role:  meta.role || 'user',
-          });
-
-          // Trabalho pesado adiado para FORA do lock — busca a role real em profiles.
-          setTimeout(async () => {
-            try {
-              const s = await buildSession(session.user);
-              if (s) setUser(s);
-              if (s?.role === 'admin') await loadAllUsers();
-            } catch (err) {
-              console.error('Erro ao processar evento de autenticação:', err);
-            }
-          }, 0);
-        } else {
-          setUser(null);
-          setAllUsers([]);
-        }
-
-        clearTimeout(safetyTimer);
-        finish();
+    (async () => {
+      if (!getToken()) { setLoading(false); return; }
+      try {
+        const { user: me } = await api.get('/auth/me');
+        if (!active) return;
+        setUser(me);
+        if (me?.role === 'admin') await loadAllUsers();
+      } catch {
+        clearToken();
+      } finally {
+        if (active) setLoading(false);
       }
-    );
+    })();
 
-    return () => subscription.unsubscribe();
-  }, [buildSession, loadAllUsers]);
+    const onUnauthorized = () => { setUser(null); setAllUsers([]); };
+    window.addEventListener('scoutiq:unauthorized', onUnauthorized);
+
+    return () => {
+      active = false;
+      window.removeEventListener('scoutiq:unauthorized', onUnauthorized);
+    };
+  }, [loadAllUsers]);
 
   /**
-   * Autentica um usuário usando e-mail e senha via Supabase Auth.
-   * Usa metadados do JWT para sessão imediata; onAuthStateChange busca a role
-   * real da tabela profiles em background sem bloquear a navegação.
+   * Autentica via `POST /auth/login`. Persiste o token e popula a sessão.
+   *
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<{success: boolean, user?: object, error?: string}>}
    */
   const login = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { success: false, error: error.message };
-      // Sessão rápida via JWT metadata — evita round-trip extra ao banco
-      const u = data.user;
-      const meta = u.user_metadata || {};
-      const quickSession = {
-        id:    u.id,
-        email: u.email,
-        name:  meta.name || u.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-        role:  meta.role || 'user',
-      };
-      setUser(quickSession);
-      // onAuthStateChange dispara em background e atualiza a role real via profiles
-      return { success: true, user: quickSession };
-    } catch {
-      return { success: false, error: 'Erro de conexão. Tente novamente.' };
+      const { token, user: u } = await api.post('/auth/login', { email, password });
+      setToken(token);
+      setUser(u);
+      if (u?.role === 'admin') loadAllUsers();
+      return { success: true, user: u };
+    } catch (err) {
+      return { success: false, error: err.message || 'Erro de conexão. Tente novamente.' };
     }
   };
 
   /**
-   * Cadastra uma nova conta. O trigger no banco cria automaticamente o perfil.
+   * Cadastra uma nova conta via `POST /auth/register` e já autentica.
+   *
+   * @param {string} email
+   * @param {string} password
+   * @param {string} [name]
+   * @returns {Promise<{success: boolean, user?: object, error?: string}>}
    */
   const signup = async (email, password, name) => {
     try {
-      const displayName = name || email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name: displayName, role: 'user' } },
-      });
-      if (error) return { success: false, error: error.message };
-      if (data.user) {
-        const quickSession = {
-          id:    data.user.id,
-          email: data.user.email,
-          name:  displayName,
-          role:  'user',
-        };
-        setUser(quickSession);
-        return { success: true, user: quickSession };
-      }
-      return { success: true, needsConfirmation: true };
-    } catch {
-      return { success: false, error: 'Erro de conexão. Tente novamente.' };
+      const { token, user: u } = await api.post('/auth/register', { email, password, name });
+      setToken(token);
+      setUser(u);
+      return { success: true, user: u };
+    } catch (err) {
+      return { success: false, error: err.message || 'Erro de conexão. Tente novamente.' };
     }
   };
 
   /**
-   * Encerra a sessão ativa.
-   *
-   * Tenta revogar a sessão no servidor, mas NÃO deixa uma falha de rede
-   * (ex.: "Failed to fetch") impedir o logout local. Sem essa garantia, o
-   * supabase-js retorna o erro sem remover a sessão do localStorage, então
-   * a UI volta ao login mas o F5 restaura a sessão antiga (usuário "preso").
+   * Encerra a sessão: remove o token e limpa o estado local.
    */
   const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
-      if (error) throw error;
-    } catch (err) {
-      console.warn('signOut no servidor falhou; limpando sessão localmente.', err);
-      // Fallback offline: remove a sessão persistida do supabase-js do localStorage.
-      try {
-        Object.keys(window.localStorage)
-          .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
-          .forEach((k) => window.localStorage.removeItem(k));
-      } catch { /* ambiente sem localStorage */ }
-    }
+    clearToken();
     setUser(null);
     setAllUsers([]);
   };
 
   /**
-   * Login de demonstração local (sem persistência no banco).
+   * Login de demonstração local (sem token; não acessa o servidor).
    * Role 'user' para não conceder privilégios administrativos ao visitante.
    */
   const loginAsGuest = () => {
+    clearToken();
     const guestSession = {
       id:    'guest-' + Date.now(),
       name:  'Visitante (Demo)',
@@ -212,39 +127,25 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Altera a role de qualquer usuário na tabela profiles (exclusivo para admins).
-   * Persiste no banco e atualiza o estado local imediatamente.
+   * Altera a role de qualquer usuário (exclusivo para admins) via API.
    *
    * @param {string} userId - UUID do usuário alvo.
    * @param {string} newRole - Nova role ('user' | 'scout' | 'admin').
    */
   const setUserRole = async (userId, newRole) => {
-    // Apenas admins podem chamar esta função
     if (!user || user.role !== 'admin') throw new Error('Acesso negado: requer permissão de administrador.');
-    const VALID_ROLES = ['user', 'scout', 'admin'];
-    if (!VALID_ROLES.includes(newRole)) throw new Error('Papel inválido.');
+    const { user: updated } = await api.patch(`/users/${userId}/role`, { role: newRole });
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
-
-    if (error) {
-      console.error('Erro ao alterar role:', error.message);
-      throw error;
-    }
-
-    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, role: updated.role } : u));
 
     if (user.id === userId) {
-      setUser(prev => ({ ...prev, role: newRole }));
-      if (newRole !== 'admin') setAllUsers([]);
+      setUser(prev => ({ ...prev, role: updated.role }));
+      if (updated.role !== 'admin') setAllUsers([]);
     }
   };
 
   /**
-   * Permite que um usuário comum eleve-se para 'scout' (auto-upgrade).
-   * Exclusivo para a transição user → scout; não pode ser usado para escalar a admin.
+   * Permite que um usuário comum eleve-se para 'scout' (auto-upgrade) via API.
    *
    * @param {string} targetRole - Apenas 'scout' é aceito.
    */
@@ -253,18 +154,9 @@ export function AuthProvider({ children }) {
     if (user.role !== 'user' || targetRole !== 'scout') {
       throw new Error('Escalação de privilégio não autorizada.');
     }
-    // Rejeita sessões de visitante (ID local, sem registro no banco)
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Requer sessão autenticada para alterar permissões.');
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: targetRole })
-      .eq('id', user.id);
-    if (error) throw error;
-
-    setUser(prev => ({ ...prev, role: targetRole }));
-    setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: targetRole } : u));
+    const { user: updated } = await api.patch('/users/me/upgrade');
+    setUser(prev => ({ ...prev, role: updated.role }));
+    setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: updated.role } : u));
   };
 
   return (

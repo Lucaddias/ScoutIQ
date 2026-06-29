@@ -7,7 +7,7 @@
 'use strict';
 
 const { Router } = require('express');
-const { helloWorld, helloName, healthCheck, supabaseTest } = require('../controllers/helloController');
+const { helloWorld, helloName, healthCheck } = require('../controllers/helloController');
 
 /**
  * Router do Express para o módulo Hello World.
@@ -29,13 +29,6 @@ router.get('/status', healthCheck);
  * @access  Public
  */
 router.get('/', helloWorld);
-
-/**
- * @route   GET /api/hello/supabase-test
- * @desc    Testa a conexão com o Supabase e retorna uma amostra de atletas.
- * @access  Public
- */
-router.get('/supabase-test', supabaseTest);
 
 /**
  * @route   GET /api/hello/:name

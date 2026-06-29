@@ -8,8 +8,6 @@
 
 'use strict';
 
-const { supabase } = require('../config/supabase');
-
 /**
  * Responde com uma mensagem de boas-vindas genérica no formato JSON.
  *
@@ -105,36 +103,4 @@ function healthCheck(req, res) {
   });
 }
 
-/**
- * Testa a conexão com o Supabase fazendo uma consulta simples à tabela `athletes`.
- * Retorna o número de registros encontrados e os primeiros 3 atletas como amostra.
- *
- * **Endpoint:** `GET /api/hello/supabase-test`
- *
- * @param {import('express').Request}  req - Objeto de requisição do Express.
- * @param {import('express').Response} res - Objeto de resposta do Express.
- * @param {import('express').NextFunction} next - Função de próximo middleware.
- * @returns {void}
- */
-async function supabaseTest(req, res, next) {
-  try {
-    const { data, error, count } = await supabase
-      .from('athletes')
-      .select('id, name, team, position', { count: 'exact' })
-      .limit(3);
-
-    if (error) throw new Error(`Supabase error: ${error.message}`);
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Conexão com o Supabase estabelecida com sucesso!',
-      totalAthletes: count,
-      sample: data,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-module.exports = { helloWorld, helloName, healthCheck, supabaseTest };
+module.exports = { helloWorld, helloName, healthCheck };

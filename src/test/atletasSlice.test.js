@@ -1,17 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// vi.mock intercepta o módulo pelo caminho resolvido — o mesmo que o slice importa.
-vi.mock('../lib/supabase.js', () => ({
-  supabase: {
-    auth: { getUser: vi.fn() },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-    })),
+// O slice agora fala com a API Express. Mockamos o api.js para isolar o reducer
+// (os testes abaixo despacham as actions .pending/.fulfilled/.rejected diretamente,
+// sem executar os thunks, mas o mock evita qualquer chamada de rede real).
+vi.mock('../lib/api.js', () => ({
+  api: {
+    get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), del: vi.fn(),
   },
 }));
 

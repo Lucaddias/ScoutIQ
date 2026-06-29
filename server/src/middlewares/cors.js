@@ -28,7 +28,12 @@ const corsOptions = {
     // Permite requisições sem Origin (ex: ferramentas como curl, Postman, SSR)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
+    // Em desenvolvimento, libera qualquer localhost/127.0.0.1 (o Vite pode usar
+    // portas diferentes). Em produção, apenas as origens da lista.
+    const isLocalhostDev =
+      nodeEnv === 'development' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+    if (allowedOrigins.includes(origin) || isLocalhostDev) {
       callback(null, true);
     } else {
       callback(new Error(`Origem bloqueada pelo CORS: ${origin}`));

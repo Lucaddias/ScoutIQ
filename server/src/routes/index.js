@@ -9,6 +9,11 @@
 
 const { Router } = require('express');
 const helloRouter = require('./hello');
+const authRouter = require('./auth');
+const athletesRouter = require('./athletes');
+const usersRouter = require('./users');
+const estatisticasRouter = require('./estatisticas');
+const { relatoriosRouter, propostasRouter } = require('./apoio');
 
 /**
  * Router principal da API.
@@ -32,7 +37,14 @@ router.get('/', (req, res) => {
     resources: {
       hello: '/api/hello',
       helloStatus: '/api/hello/status',
-      helloName: '/api/hello/:name',
+      authRegister: 'POST /api/auth/register',
+      authLogin: 'POST /api/auth/login',
+      authMe: 'GET /api/auth/me',
+      athletes: '/api/athletes',
+      users: '/api/users',
+      estatisticas: '/api/estatisticas',
+      relatorios: '/api/relatorios',
+      propostas: '/api/propostas',
     },
     timestamp: new Date().toISOString(),
   });
@@ -43,5 +55,33 @@ router.get('/', (req, res) => {
  * Resultado: todos os endpoints do hello ficam acessíveis em `/api/hello/*`.
  */
 router.use('/hello', helloRouter);
+
+/**
+ * Registra o router de autenticação sob o prefixo `/auth`.
+ * Resultado: endpoints acessíveis em `/api/auth/*` (register, login, me).
+ */
+router.use('/auth', authRouter);
+
+/**
+ * Registra o router de atletas sob o prefixo `/athletes`.
+ * Todas as rotas são protegidas por JWT (e algumas por role).
+ */
+router.use('/athletes', athletesRouter);
+
+/**
+ * Registra o router de usuários sob `/users` (gestão de perfis e papéis).
+ */
+router.use('/users', usersRouter);
+
+/**
+ * Registra o router de estatísticas sob `/estatisticas`.
+ */
+router.use('/estatisticas', estatisticasRouter);
+
+/**
+ * Registra os routers de apoio à decisão: relatórios e propostas.
+ */
+router.use('/relatorios', relatoriosRouter);
+router.use('/propostas', propostasRouter);
 
 module.exports = router;

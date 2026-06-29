@@ -8,6 +8,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
+    // Restringe a descoberta de testes ao front-end; os testes do back-end
+    // (server/) rodam com Jest, não com Vitest.
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
 
   server: {

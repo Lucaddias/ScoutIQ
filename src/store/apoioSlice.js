@@ -7,7 +7,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { gerarCenarios } from '../utils/algorithm.js';
-import { supabase } from '../lib/supabase.js';
+import { api } from '../lib/api.js';
 
 /**
  * Thunk assíncrono para simular cenários de compra.
@@ -32,25 +32,11 @@ export const simularCenarios = createAsyncThunk(
 export const salvarPacoteOficial = createAsyncThunk(
   'apoio/salvarRelatorio',
   async ({ pacoteArray, nomeRelatorio }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado.');
-
-    const novoRelatorio = {
-      id: `rel_${crypto.randomUUID()}`,
+    const { relatorio } = await api.post('/relatorios', {
       nome: nomeRelatorio,
-      dataCriacao: new Date().toISOString(),
       atletas: pacoteArray,
-      user_id: user.id,
-    };
-
-    const { data, error } = await supabase
-      .from('relatorios')
-      .insert([novoRelatorio])
-      .select()
-      .single();
-    if (error) throw new Error(`Erro ao salvar relatório: ${error.message}`);
-
-    return data;
+    });
+    return relatorio;
   }
 );
 
@@ -60,14 +46,10 @@ export const salvarPacoteOficial = createAsyncThunk(
  * @type {Function}
  */
 export const fetchRelatorios = createAsyncThunk(
-  'apoio/fetchRelatorios', 
+  'apoio/fetchRelatorios',
   async () => {
-    const { data, error } = await supabase
-      .from('relatorios')
-      .select('*')
-      .order('dataCriacao', { ascending: false });
-    if (error) throw new Error(`Erro ao buscar relatórios: ${error.message}`);
-    return data;
+    const { relatorios } = await api.get('/relatorios');
+    return relatorios;
   }
 );
 
@@ -77,13 +59,9 @@ export const fetchRelatorios = createAsyncThunk(
  * @type {Function}
  */
 export const deletarRelatorio = createAsyncThunk(
-  'apoio/deletarRelatorio', 
+  'apoio/deletarRelatorio',
   async (id) => {
-    const { error } = await supabase
-      .from('relatorios')
-      .delete()
-      .eq('id', id);
-    if (error) throw new Error(`Erro ao deletar relatório: ${error.message}`);
+    await api.del(`/relatorios/${id}`);
     return id;
   }
 );
@@ -96,29 +74,8 @@ export const deletarRelatorio = createAsyncThunk(
 export const salvarProposta = createAsyncThunk(
   'apoio/salvarProposta',
   async ({ player, proposal }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuário não autenticado.');
-
-    const nova = {
-      id: `prop_${crypto.randomUUID()}`,
-      tipo: 'proposta',
-      dataCriacao: new Date().toISOString(),
-      jogadorId: player.id,
-      jogadorNome: player.name,
-      jogadorTime: player.team,
-      jogadorPosicao: player.position,
-      jogadorFoto: player.profileImageURL || '',
-      jogadorScore: player.score,
-      user_id: user.id,
-      ...proposal,
-    };
-    const { data, error } = await supabase
-      .from('propostas')
-      .insert([nova])
-      .select()
-      .single();
-    if (error) throw new Error(`Erro ao salvar proposta: ${error.message}`);
-    return data;
+    const { proposta } = await api.post('/propostas', { player, proposal });
+    return proposta;
   }
 );
 
@@ -130,12 +87,8 @@ export const salvarProposta = createAsyncThunk(
 export const fetchPropostas = createAsyncThunk(
   'apoio/fetchPropostas',
   async () => {
-    const { data, error } = await supabase
-      .from('propostas')
-      .select('*')
-      .order('dataCriacao', { ascending: false });
-    if (error) throw new Error(`Erro ao buscar propostas: ${error.message}`);
-    return data;
+    const { propostas } = await api.get('/propostas');
+    return propostas;
   }
 );
 
@@ -147,11 +100,7 @@ export const fetchPropostas = createAsyncThunk(
 export const deletarProposta = createAsyncThunk(
   'apoio/deletarProposta',
   async (id) => {
-    const { error } = await supabase
-      .from('propostas')
-      .delete()
-      .eq('id', id);
-    if (error) throw new Error(`Erro ao deletar proposta: ${error.message}`);
+    await api.del(`/propostas/${id}`);
     return id;
   }
 );
@@ -162,16 +111,10 @@ export const deletarProposta = createAsyncThunk(
  * @type {Function}
  */
 export const renomearRelatorio = createAsyncThunk(
-  'apoio/renomearRelatorio', 
+  'apoio/renomearRelatorio',
   async ({ id, novoNome }) => {
-    const { data, error } = await supabase
-      .from('relatorios')
-      .update({ nome: novoNome })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw new Error(`Erro ao renomear relatório: ${error.message}`);
-    return data;
+    const { relatorio } = await api.patch(`/relatorios/${id}`, { nome: novoNome });
+    return relatorio;
   }
 );
 

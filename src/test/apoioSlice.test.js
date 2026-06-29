@@ -1,20 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// apoioSlice.js está em src/store/ e faz: import { supabase } from '../lib/supabase.js'
-// O Vitest resolve mocks pelo caminho absoluto do módulo. Usamos o caminho relativo
-// do arquivo de TESTE que leva ao mesmo arquivo resolvido: src/lib/supabase.js
-vi.mock('../lib/supabase.js', () => ({
-  supabase: {
-    auth: { getUser: vi.fn() },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      single: vi.fn(),
-    })),
+// O apoioSlice agora fala com a API Express. Mockamos o api.js para isolar o reducer
+// (os testes despacham as actions diretamente, sem executar os thunks reais).
+vi.mock('../lib/api.js', () => ({
+  api: {
+    get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), del: vi.fn(),
   },
 }));
 

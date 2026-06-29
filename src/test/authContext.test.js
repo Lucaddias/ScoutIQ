@@ -3,39 +3,33 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // ---------------------------------------------------------------------------
-// Testes de Autenticação e Segurança do AuthContext.
+// Testes de Autenticação e Segurança do AuthContext (arquitetura JWT/Express).
 //
-// Cobrem três frentes que não tinham rede de testes:
-//   1) Anti-deadlock  — o callback do onAuthStateChange precisa ser SÍNCRONO,
-//      senão o signInWithPassword trava ("Aguarde..." infinito).
-//   2) Logout robusto — a sessão local precisa ser limpa mesmo se a rede falhar,
-//      senão o usuário fica "preso" (F5 volta logado).
-//   3) Escalonamento de privilégio — usuário comum/guest NUNCA pode virar admin.
+// Cobrem:
+//   1) Login/logout via API (token salvo/limpo, usuário populado).
+//   2) Restauração de sessão a partir do token (GET /auth/me).
+//   3) Escalonamento de privilégio — usuário comum/guest NUNCA vira admin.
 //
-// O cliente Supabase é mockado por completo; nenhum teste toca a rede.
+// O cliente HTTP (lib/api.js) é mockado por completo; nenhum teste toca a rede.
 // ---------------------------------------------------------------------------
 
 // vi.hoisted cria os mocks antes do vi.mock (que é içado para o topo).
 const mocks = vi.hoisted(() => ({
-  signInWithPassword: vi.fn(),
-  signUp: vi.fn(),
-  signOut: vi.fn(),
-  getSession: vi.fn(),
-  onAuthStateChange: vi.fn(),
-  from: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  patch: vi.fn(),
+  del: vi.fn(),
+  getToken: vi.fn(() => null),
+  setToken: vi.fn(),
+  clearToken: vi.fn(),
 }));
 
-vi.mock('../lib/supabase.js', () => ({
-  supabase: {
-    auth: {
-      signInWithPassword: mocks.signInWithPassword,
-      signUp: mocks.signUp,
-      signOut: mocks.signOut,
-      getSession: mocks.getSession,
-      onAuthStateChange: mocks.onAuthStateChange,
-    },
-    from: mocks.from,
-  },
+vi.mock('../lib/api.js', () => ({
+  api: { get: mocks.get, post: mocks.post, put: mocks.put, patch: mocks.patch, del: mocks.del },
+  getToken: mocks.getToken,
+  setToken: mocks.setToken,
+  clearToken: mocks.clearToken,
 }));
 
 import { AuthProvider, useAuth } from '../context/AuthContext.jsx';
@@ -44,62 +38,20 @@ import { AuthProvider, useAuth } from '../context/AuthContext.jsx';
 const wrapper = ({ children }) => React.createElement(AuthProvider, null, children);
 const renderAuth = () => renderHook(() => useAuth(), { wrapper });
 
-// Resultado configurável que o construtor de query do Supabase devolve.
-let profileResult;   // o que .single() resolve (fetchProfile)
-let allUsersResult;  // o que .order() resolve (loadAllUsers)
-let authCallback;    // callback registrado em onAuthStateChange
-
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
-
-  profileResult = { id: 'u1', email: 'a@b.com', name: 'A', role: 'user' };
-  allUsersResult = [];
-
-  // Builder encadeável que serve para select().eq().single(),
-  // select().order() e update().eq() (este último é "awaitado" direto).
-  mocks.from.mockImplementation(() => {
-    const qb = {};
-    qb.select = vi.fn(() => qb);
-    qb.insert = vi.fn(() => qb);
-    qb.update = vi.fn(() => qb);
-    qb.delete = vi.fn(() => qb);
-    qb.eq = vi.fn(() => qb);
-    qb.order = vi.fn(() => Promise.resolve({ data: allUsersResult, error: null }));
-    qb.single = vi.fn(() => Promise.resolve({ data: profileResult, error: null }));
-    // Torna o builder "awaitable" (update().eq() resolve sem erro).
-    qb.then = (resolve) => resolve({ data: null, error: null });
-    return qb;
-  });
-
-  // Captura o callback de auth; não dispara nada sozinho (controlado por teste).
-  mocks.onAuthStateChange.mockImplementation((cb) => {
-    authCallback = cb;
-    return { data: { subscription: { unsubscribe: vi.fn() } } };
-  });
-
-  mocks.getSession.mockResolvedValue({ data: { session: null } });
+  mocks.getToken.mockReturnValue(null); // sem sessão restaurada por padrão
 });
 
 // ---------------------------------------------------------------------------
-// 1) Anti-deadlock
+// 1) Login / logout
 // ---------------------------------------------------------------------------
-describe('AuthContext — anti-deadlock', () => {
-  it('callback_sincrono: o handler do onAuthStateChange NÃO é async (evita deadlock do lock do auth-js)', () => {
-    renderAuth();
-
-    expect(mocks.onAuthStateChange).toHaveBeenCalled();
-    const cb = mocks.onAuthStateChange.mock.calls[0][0];
-    // Se alguém regredir para `async (event, session) => ...`, o lock interno
-    // trava o signInWithPassword. Este teste falha nesse caso.
-    expect(cb.constructor.name).not.toBe('AsyncFunction');
-    expect(cb.constructor.name).toBe('Function');
-  });
-
-  it('login_resolve: login() retorna sucesso e seta o usuário sem travar', async () => {
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'u1', email: 'a@b.com', user_metadata: { name: 'A', role: 'user' } } },
-      error: null,
+describe('AuthContext — login/logout', () => {
+  it('login_resolve: login() salva o token e seta o usuário', async () => {
+    mocks.post.mockResolvedValue({
+      token: 'jwt-abc',
+      user: { id: 'u1', email: 'a@b.com', name: 'A', role: 'user' },
     });
 
     const { result } = renderAuth();
@@ -108,14 +60,13 @@ describe('AuthContext — anti-deadlock', () => {
     await act(async () => { res = await result.current.login('a@b.com', 'secret'); });
 
     expect(res.success).toBe(true);
+    expect(mocks.post).toHaveBeenCalledWith('/auth/login', { email: 'a@b.com', password: 'secret' });
+    expect(mocks.setToken).toHaveBeenCalledWith('jwt-abc');
     expect(result.current.user).toMatchObject({ id: 'u1', email: 'a@b.com', role: 'user' });
   });
 
   it('login_erro: credenciais inválidas retornam success=false sem lançar', async () => {
-    mocks.signInWithPassword.mockResolvedValue({
-      data: null,
-      error: { message: 'Invalid login credentials' },
-    });
+    mocks.post.mockRejectedValue(new Error('E-mail ou senha incorretos.'));
 
     const { result } = renderAuth();
 
@@ -123,43 +74,37 @@ describe('AuthContext — anti-deadlock', () => {
     await act(async () => { res = await result.current.login('a@b.com', 'errada'); });
 
     expect(res.success).toBe(false);
-    expect(res.error).toBe('Invalid login credentials');
+    expect(res.error).toBe('E-mail ou senha incorretos.');
+    expect(result.current.user).toBeNull();
+  });
+
+  it('logout: limpa o token e zera o usuário', async () => {
+    const { result } = renderAuth();
+    act(() => { result.current.loginAsGuest(); });
+
+    await act(async () => { await result.current.logout(); });
+
+    expect(mocks.clearToken).toHaveBeenCalled();
     expect(result.current.user).toBeNull();
   });
 });
 
 // ---------------------------------------------------------------------------
-// 2) Logout robusto
+// 2) Restauração de sessão
 // ---------------------------------------------------------------------------
-describe('AuthContext — logout robusto', () => {
-  it('logout_offline: limpa a sessão do localStorage mesmo quando a rede falha', async () => {
-    // Sessão persistida (formato do supabase-js: sb-<ref>-auth-token).
-    window.localStorage.setItem(
-      'sb-kcsqrzppvqpfqtkowpjw-auth-token',
-      JSON.stringify({ access_token: 'x' })
+describe('AuthContext — restauração de sessão', () => {
+  it('restaura_do_token: com token salvo, busca /auth/me e popula o usuário', async () => {
+    mocks.getToken.mockReturnValue('jwt-existente');
+    mocks.get.mockImplementation((path) =>
+      path === '/auth/me'
+        ? Promise.resolve({ user: { id: 'u1', email: 'a@b.com', name: 'A', role: 'scout' } })
+        : Promise.resolve({ users: [] })
     );
-    // signOut falha (ex.: "Failed to fetch").
-    mocks.signOut.mockRejectedValue(new Error('Failed to fetch'));
 
     const { result } = renderAuth();
-    act(() => { result.current.loginAsGuest(); });
 
-    await act(async () => { await result.current.logout(); });
-
-    expect(window.localStorage.getItem('sb-kcsqrzppvqpfqtkowpjw-auth-token')).toBeNull();
-    expect(result.current.user).toBeNull();
-  });
-
-  it('logout_ok: caminho feliz usa scope=local e zera o usuário', async () => {
-    mocks.signOut.mockResolvedValue({ error: null });
-
-    const { result } = renderAuth();
-    act(() => { result.current.loginAsGuest(); });
-
-    await act(async () => { await result.current.logout(); });
-
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' });
-    expect(result.current.user).toBeNull();
+    await waitFor(() => expect(result.current.user?.role).toBe('scout'));
+    expect(mocks.get).toHaveBeenCalledWith('/auth/me');
   });
 });
 
@@ -184,46 +129,45 @@ describe('AuthContext — segurança de papéis (anti-escalonamento)', () => {
     await expect(
       result.current.setUserRole('alvo-id', 'admin')
     ).rejects.toThrow(/Acesso negado/);
+    expect(mocks.patch).not.toHaveBeenCalled();
   });
 
   it('upgradeRole_bloqueia_admin: usuário comum não pode se autopromover a admin', async () => {
     const { result } = renderAuth();
     act(() => { result.current.loginAsGuest(); }); // role 'user'
 
-    // Só user->scout é permitido; qualquer alvo != 'scout' deve ser rejeitado.
     await expect(result.current.upgradeRole('admin')).rejects.toThrow();
+    expect(mocks.patch).not.toHaveBeenCalled();
   });
 
   it('upgradeRole_so_de_user: quem já é admin não passa pelo fluxo de autoupgrade', async () => {
-    // Injeta uma sessão cujo perfil no banco é admin.
-    profileResult = { id: 'u1', email: 'admin@b.com', name: 'Admin', role: 'admin' };
-    const { result } = renderAuth();
+    mocks.getToken.mockReturnValue('jwt-admin');
+    mocks.get.mockImplementation((path) =>
+      path === '/auth/me'
+        ? Promise.resolve({ user: { id: 'u1', email: 'admin@b.com', name: 'Admin', role: 'admin' } })
+        : Promise.resolve({ users: [] })
+    );
 
-    await act(async () => {
-      authCallback('SIGNED_IN', { user: { id: 'u1', email: 'admin@b.com', user_metadata: {} } });
-    });
+    const { result } = renderAuth();
     await waitFor(() => expect(result.current.user?.role).toBe('admin'));
 
     await expect(result.current.upgradeRole('scout')).rejects.toThrow();
   });
-});
 
-// ---------------------------------------------------------------------------
-// 4) profiles é a fonte de verdade do papel
-// ---------------------------------------------------------------------------
-describe('AuthContext — profiles como fonte de verdade', () => {
-  it('role_vem_de_profiles: o papel do banco sobrescreve o metadata do JWT', async () => {
-    // Metadata diz 'user', mas a tabela profiles diz 'admin' → deve valer 'admin'.
-    profileResult = { id: 'u1', email: 'a@b.com', name: 'A', role: 'admin' };
+  it('setUserRole_admin_chama_api: admin altera papel via PATCH /users/:id/role', async () => {
+    mocks.getToken.mockReturnValue('jwt-admin');
+    mocks.get.mockImplementation((path) =>
+      path === '/auth/me'
+        ? Promise.resolve({ user: { id: 'admin1', email: 'admin@b.com', name: 'Admin', role: 'admin' } })
+        : Promise.resolve({ users: [{ id: 'u2', email: 'x@y.com', name: 'X', role: 'user' }] })
+    );
+    mocks.patch.mockResolvedValue({ user: { id: 'u2', email: 'x@y.com', name: 'X', role: 'scout' } });
 
     const { result } = renderAuth();
-
-    await act(async () => {
-      authCallback('SIGNED_IN', {
-        user: { id: 'u1', email: 'a@b.com', user_metadata: { role: 'user' } },
-      });
-    });
-
     await waitFor(() => expect(result.current.user?.role).toBe('admin'));
+
+    await act(async () => { await result.current.setUserRole('u2', 'scout'); });
+
+    expect(mocks.patch).toHaveBeenCalledWith('/users/u2/role', { role: 'scout' });
   });
 });

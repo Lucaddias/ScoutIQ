@@ -9,10 +9,12 @@
 'use strict';
 
 const express = require('express');
+const helmet = require('helmet');
 const corsMiddleware = require('./middlewares/cors');
 const logger = require('./middlewares/logger');
 const errorHandler = require('./middlewares/errorHandler');
 const apiRouter = require('./routes/index');
+const { nodeEnv } = require('./config/env');
 
 /**
  * Instância da aplicação Express.
@@ -20,10 +22,25 @@ const apiRouter = require('./routes/index');
  */
 const app = express();
 
+/**
+ * Em produção a API roda atrás de um proxy reverso (Render/Nginx). Confiar no
+ * primeiro hop faz `req.ip` refletir o IP real do cliente — essencial para o
+ * rate-limit funcionar por usuário (e não tratar todos como o IP do proxy).
+ */
+if (nodeEnv === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ─────────────────────────────────────────────────
 // MIDDLEWARES GLOBAIS
 // Aplicados a todas as requisições, na ordem de registro.
 // ─────────────────────────────────────────────────
+
+/**
+ * Helmet: define cabeçalhos HTTP de segurança (XSS, clickjacking, MIME sniffing).
+ * Registrado primeiro para proteger todas as respostas.
+ */
+app.use(helmet());
 
 /**
  * CORS: libera requisições cross-origin do front-end React (porta 5173).
