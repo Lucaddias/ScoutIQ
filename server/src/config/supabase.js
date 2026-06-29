@@ -15,6 +15,16 @@ if (!env.supabaseUrl || !env.supabaseServiceKey) {
   );
 }
 
+if (env.supabaseServiceKey.startsWith('sb_publishable_') || env.supabaseServiceKey.includes('anon')) {
+  console.warn(
+    '\n⚠️  AVISO DE CONFIGURAÇÃO:\n' +
+    '   A variável SUPABASE_SERVICE_ROLE_KEY no arquivo server/.env está preenchida com a chave pública (anon).\n' +
+    '   O servidor precisa da chave secreta "service_role" para ignorar o Row-Level Security (RLS).\n' +
+    '   Sem ela, você receberá o erro: "new row violates row-level security policy".\n' +
+    '   Pegue a chave secreta no painel do Supabase em: Project Settings > API > service_role secret.\n'
+  );
+}
+
 /**
  * Instância do cliente Supabase para uso no servidor.
  *

@@ -77,7 +77,15 @@ async function register(req, res) {
     .single();
 
   if (error?.code === '23505') throw new HttpError(409, 'Este e-mail já está cadastrado.');
-  if (error) throw new Error(`Erro ao criar perfil: ${error.message}`);
+  if (error) {
+    if (error.message.includes('row-level security')) {
+      throw new HttpError(
+        500,
+        'Erro no servidor: A variável SUPABASE_SERVICE_ROLE_KEY em server/.env está com a chave pública (anon) em vez da chave secreta (service_role). Pegue a chave secreta no painel do Supabase em Project Settings > API.'
+      );
+    }
+    throw new Error(`Erro ao criar perfil: ${error.message}`);
+  }
 
   const token = signToken(profile);
   res.status(201).json({ status: 'success', token, user: toPublic(profile) });
