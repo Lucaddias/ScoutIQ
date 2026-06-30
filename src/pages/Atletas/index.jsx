@@ -12,6 +12,7 @@ import './Atletas.css';
 
 import { useDispatch } from 'react-redux';
 import { criarAtleta } from '../../store/atletasSlice';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const POSITIONS = ['Todos', 'Forward', 'Midfielder', 'Defender', 'Goalkeeper'];
 const PAGE_SIZE = 12;
@@ -59,6 +60,10 @@ const initialFilterState = {
  * @returns {React.ReactElement} A página de atletas renderizada.
  */
 export default function Atletas({ onPlayerClick, initialPosition }) {
+  const { user } = useAuth();
+  const role = user?.role || 'user';
+  const canCreate = ['scout', 'admin'].includes(role);
+
   // Leitura do store via hook compartilhado (fetch automático quando idle).
   // `players` já vem enriquecido com o ScoutIQ Score (selector memoizado, pool completo).
   const { players, loading, status, error, retry } = useAtletas();
@@ -143,17 +148,19 @@ export default function Atletas({ onPlayerClick, initialPosition }) {
           <p>{filtered.length} atletas encontrados</p>
         </div>
         {/* BOTÃO DE ADICIONAR */}
-        <button 
-          className="btn-verde" 
-          onClick={() => setModalAberto(true)}
-          style={{ background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          <i className="fa-solid fa-plus"></i> Novo Atleta
-        </button>
+        {canCreate && (
+          <button 
+            className="btn-verde" 
+            onClick={() => setModalAberto(true)}
+            style={{ background: '#10b981', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            <i className="fa-solid fa-plus"></i> Novo Atleta
+          </button>
+        )}
       </div>
 
       {/* JANELA MODAL DE CADASTRO */}
-      {modalAberto && (
+      {modalAberto && canCreate && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '420px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
             <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Cadastrar Atleta</h3>

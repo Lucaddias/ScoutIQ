@@ -183,14 +183,14 @@ const Dashboard = ({ page, onNavigate }) => {
       <PlayerModal
         player={modalPlayer}
         onClose={() => setModalPlayer(null)}
-        onEdit={handleEditPlayer}
-        onDelete={handleDeletePlayer}
-        isAdmin={role === 'admin'}
-        onStatEdit={handleStatEdit}
+        onEdit={canAccess(['scout', 'admin']) ? handleEditPlayer : null}
+        onDelete={canAccess(['admin']) ? handleDeletePlayer : null}
+        isAdmin={canAccess(['scout', 'admin'])}
+        onStatEdit={canAccess(['scout', 'admin']) ? handleStatEdit : null}
       />
 
       {/* Modal de Edição */}
-      {editPlayer && (
+      {editPlayer && canAccess(['scout', 'admin']) && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
           <div style={{ background: '#1e293b', padding: '30px', borderRadius: '12px', width: '420px', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
             <h3 style={{ marginTop: 0, color: 'white', marginBottom: '20px' }}>Editar Atleta</h3>
